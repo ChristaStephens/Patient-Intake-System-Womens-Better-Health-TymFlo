@@ -39,14 +39,14 @@ jobs:
         run: pnpm --filter @workspace/intake-form build
         env:
           PORT: 3000
-          BASE_PATH: /Patient-Intake-System-Womens-Better-Health-TymFlo/
+          BASE_PATH: /
           NODE_ENV: production
 
       - name: Build tutorial
         run: pnpm --filter @workspace/intake-form-tutorial build
         env:
           PORT: 3000
-          BASE_PATH: /Patient-Intake-System-Womens-Better-Health-TymFlo/intake-form-tutorial/
+          BASE_PATH: /intake-form-tutorial/
           NODE_ENV: production
 
       - name: Merge tutorial into intake-form dist
