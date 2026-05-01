@@ -39,8 +39,20 @@ jobs:
         run: pnpm --filter @workspace/intake-form build
         env:
           PORT: 3000
-          BASE_PATH: /TymFlo-Patient-Intake-System-Template/
+          BASE_PATH: /Patient-Intake-System-Womens-Better-Health-TymFlo/
           NODE_ENV: production
+
+      - name: Build tutorial
+        run: pnpm --filter @workspace/intake-form-tutorial build
+        env:
+          PORT: 3000
+          BASE_PATH: /Patient-Intake-System-Womens-Better-Health-TymFlo/intake-form-tutorial/
+          NODE_ENV: production
+
+      - name: Merge tutorial into intake-form dist
+        run: |
+          mkdir -p artifacts/intake-form/dist/public/intake-form-tutorial
+          cp -r artifacts/intake-form-tutorial/dist/public/. artifacts/intake-form/dist/public/intake-form-tutorial/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
