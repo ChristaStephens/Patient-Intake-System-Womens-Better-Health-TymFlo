@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #3d0e22;
+  --color-secondary: #6b1e3d;
+  --color-accent: #E8956D;
+
+  --color-bg-light: #fdf5f8;
+  --color-bg-dark: #3d0e22;
+  --color-bg-muted: #6b1e3d;
+
+  --color-text-primary: #3d0e22;
+  --color-text-secondary: #6b1e3d;
+  --color-text-muted: #9b3060;
+  --color-text-inverse: #FFFFFF;
+
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-bg-light: var(--color-bg-light);
+  --color-bg-dark: var(--color-bg-dark);
+  --color-bg-muted: var(--color-bg-muted);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+body {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg-light);
+  overflow: hidden;
+}

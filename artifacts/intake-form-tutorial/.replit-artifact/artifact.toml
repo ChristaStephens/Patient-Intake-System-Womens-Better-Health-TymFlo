@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/intake-form-tutorial/"
+title = "Patient Intake Form Tutorial"
+version = "1.0.0"
+id = "artifacts/intake-form-tutorial"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/intake-form-tutorial/" ]
+localPort = 24143
+
+[services.development]
+run = "pnpm --filter @workspace/intake-form-tutorial run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/intake-form-tutorial", "run", "build" ]
+publicDir = "artifacts/intake-form-tutorial/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24143"
+BASE_PATH = "/intake-form-tutorial/"

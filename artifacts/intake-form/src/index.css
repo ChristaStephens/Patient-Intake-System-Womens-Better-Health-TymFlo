@@ -73,11 +73,19 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
+  /* Brand palette */
+  --brand-deep-berry: #3d0e22;
+  --brand-dark-rose: #6b1e3d;
+  --brand-pink: #9b3060;
+  --brand-light-pink: #c96090;
+  --brand-blush: #f0c0d4;
+  --brand-blush-light: #faf0f4;
+
   --background: 210 20% 97%;
   --foreground: 215 25% 15%;
   --border: 214 20% 88%;
   --input: 214 20% 88%;
-  --ring: 172 70% 35%;
+  --ring: 337 56% 27%;
 
   --card: 0 0% 100%;
   --card-foreground: 215 25% 15%;
@@ -87,7 +95,7 @@
   --popover-foreground: 215 25% 15%;
   --popover-border: 214 20% 88%;
 
-  --primary: 172 70% 35%;
+  --primary: 337 56% 27%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 214 15% 92%;
@@ -96,13 +104,13 @@
   --muted: 210 15% 94%;
   --muted-foreground: 215 15% 45%;
 
-  --accent: 172 50% 90%;
-  --accent-foreground: 172 70% 20%;
+  --accent: 337 52% 85%;
+  --accent-foreground: 337 63% 15%;
 
   --destructive: 4 80% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 172 70% 35%;
+  --chart-1: 337 56% 27%;
   --chart-2: 200 65% 45%;
   --chart-3: 240 60% 55%;
   --chart-4: 30 80% 50%;
@@ -111,11 +119,11 @@
   --sidebar: 210 20% 97%;
   --sidebar-foreground: 215 25% 15%;
   --sidebar-border: 214 20% 88%;
-  --sidebar-primary: 172 70% 35%;
+  --sidebar-primary: 337 56% 27%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 172 50% 90%;
-  --sidebar-accent-foreground: 172 70% 20%;
-  --sidebar-ring: 172 70% 35%;
+  --sidebar-accent: 337 52% 85%;
+  --sidebar-accent-foreground: 337 63% 15%;
+  --sidebar-ring: 337 56% 27%;
 
   --app-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --app-font-serif: Georgia, serif;
@@ -160,7 +168,7 @@
   --foreground: 210 20% 92%;
   --border: 215 20% 22%;
   --input: 215 20% 22%;
-  --ring: 172 60% 45%;
+  --ring: 337 48% 45%;
 
   --card: 215 25% 13%;
   --card-foreground: 210 20% 92%;
@@ -170,7 +178,7 @@
   --popover-foreground: 210 20% 92%;
   --popover-border: 215 20% 22%;
 
-  --primary: 172 60% 45%;
+  --primary: 337 48% 45%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 215 20% 20%;
@@ -179,13 +187,13 @@
   --muted: 215 20% 18%;
   --muted-foreground: 215 15% 55%;
 
-  --accent: 172 40% 20%;
-  --accent-foreground: 172 60% 75%;
+  --accent: 337 40% 20%;
+  --accent-foreground: 337 52% 85%;
 
   --destructive: 4 70% 50%;
   --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 172 60% 45%;
+  --chart-1: 337 48% 45%;
   --chart-2: 200 55% 55%;
   --chart-3: 240 55% 65%;
   --chart-4: 30 70% 55%;
@@ -194,11 +202,11 @@
   --sidebar: 215 28% 10%;
   --sidebar-foreground: 210 20% 92%;
   --sidebar-border: 215 20% 22%;
-  --sidebar-primary: 172 60% 45%;
+  --sidebar-primary: 337 48% 45%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 172 40% 20%;
-  --sidebar-accent-foreground: 172 60% 75%;
-  --sidebar-ring: 172 60% 45%;
+  --sidebar-accent: 337 40% 20%;
+  --sidebar-accent-foreground: 337 52% 85%;
+  --sidebar-ring: 337 48% 45%;
 
   --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,.25);
   --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,.30);
@@ -289,10 +297,31 @@
     inset: -1px;
   }
 
+  /* Brand-colored form inputs — focus ring uses brand pink for visibility */
   .form-input {
     @apply w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white text-slate-800
-           placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500
-           focus:border-teal-500 transition-colors;
+           placeholder:text-slate-400 focus:outline-none focus:ring-2
+           focus:border-[#9b3060] transition-colors;
+    --tw-ring-color: #9b3060;
+  }
+
+  .form-input:focus {
+    box-shadow: 0 0 0 2px rgba(155, 48, 96, 0.35);
+    border-color: #9b3060;
+  }
+
+  /* Primary action button — Dark Rose with white text, contrast ~10.9:1 ✓ */
+  .btn-primary {
+    background-color: var(--brand-dark-rose);
+    color: #ffffff;
+    transition: background-color 0.15s;
+  }
+  .btn-primary:hover {
+    background-color: var(--brand-deep-berry);
+  }
+  .btn-primary:focus-visible {
+    outline: 3px solid var(--brand-light-pink);
+    outline-offset: 2px;
   }
 
   .save-btn {
@@ -301,8 +330,18 @@
            cursor-pointer;
   }
 
+  /* Save session — Dark Rose, white text: ~10.9:1 contrast ✓ */
   .save-btn-session {
-    @apply bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500;
+    background-color: var(--brand-dark-rose);
+    color: #ffffff;
+  }
+  .save-btn-session:hover {
+    background-color: var(--brand-deep-berry);
+  }
+  .save-btn-session:focus {
+    outline: 3px solid var(--brand-light-pink);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(201, 96, 144, 0.4);
   }
 
   .save-btn-device {
@@ -310,11 +349,13 @@
   }
 
   .save-btn-clear {
-    @apply bg-white text-rose-600 border border-rose-300 hover:bg-rose-50 focus:ring-rose-400;
+    @apply bg-white text-rose-700 border border-rose-300 hover:bg-rose-50 focus:ring-rose-500;
   }
 
+  /* Helper/confirmation text on blush background — deep berry for contrast ~10:1 ✓ */
   .helper-text {
-    @apply text-xs text-teal-700 leading-relaxed;
+    @apply text-xs leading-relaxed;
+    color: var(--brand-deep-berry);
   }
 
   .confirmation-msg {
@@ -322,8 +363,13 @@
   }
 
   .tooltip-trigger {
-    @apply p-1 rounded-full text-teal-700 hover:text-teal-900 hover:bg-teal-100
-           focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors;
+    @apply p-1 rounded-full focus:outline-none focus:ring-2 transition-colors;
+    color: var(--brand-dark-rose);
+    --tw-ring-color: var(--brand-pink);
+  }
+  .tooltip-trigger:hover {
+    color: var(--brand-deep-berry);
+    background-color: var(--brand-blush);
   }
 
   .tooltip-content {
@@ -340,37 +386,51 @@
     @apply opacity-0 translate-y-1 pointer-events-none;
   }
 
+  /* Step dots — brand pink for done/current, sufficient contrast with white ✓ */
   .step-dot {
     @apply w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors;
   }
 
   .step-dot-done {
-    @apply bg-teal-500 text-white;
+    background-color: var(--brand-pink);
+    color: #ffffff;
   }
 
   .step-dot-current {
-    @apply bg-teal-600 text-white ring-2 ring-teal-300 ring-offset-1;
+    background-color: var(--brand-dark-rose);
+    color: #ffffff;
+    outline: 2px solid var(--brand-blush);
+    outline-offset: 1px;
   }
 
   .step-dot-upcoming {
-    @apply bg-slate-300 text-slate-500;
+    @apply bg-slate-300 text-slate-600;
   }
 
   .form-input-error {
-    @apply border-rose-400 focus:ring-rose-400 focus:border-rose-400;
+    @apply border-rose-400;
+  }
+  .form-input-error:focus {
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.35);
+    border-color: #f87171;
   }
 
   .error-msg {
-    @apply text-sm text-rose-600 font-medium flex items-center gap-1;
+    @apply text-sm text-rose-700 font-medium flex items-center gap-1;
   }
 
   .signature-display {
     font-family: cursive, "Brush Script MT", Georgia, serif;
     font-size: 1.4rem;
-    color: #1e3a5f;
+    color: var(--brand-deep-berry);
     font-style: italic;
     letter-spacing: 0.02em;
     line-height: 1.3;
+  }
+
+  /* Checkbox accent — brand pink */
+  input[type="checkbox"].brand-check {
+    accent-color: var(--brand-pink);
   }
 }
 
@@ -388,12 +448,10 @@
     font-size: 11pt !important;
   }
 
-  /* Hide interactive elements */
   .no-print {
     display: none !important;
   }
 
-  /* Hide the screen form, show print view */
   form {
     display: none !important;
   }
@@ -402,14 +460,13 @@
     display: block !important;
   }
 
-  /* Print document structure */
   .print-document {
     width: 100%;
     padding: 0;
   }
 
   .print-doc-header {
-    border-bottom: 2pt solid #1e3a5f;
+    border-bottom: 2pt solid #6b1e3d;
     padding-bottom: 10pt;
     margin-bottom: 18pt;
   }
@@ -417,7 +474,7 @@
   .print-doc-title {
     font-size: 20pt;
     font-weight: bold;
-    color: #1e3a5f;
+    color: #3d0e22;
     margin: 0 0 3pt 0;
     letter-spacing: 0.01em;
   }
@@ -426,6 +483,13 @@
     font-size: 9pt;
     color: #555;
     margin: 0;
+  }
+
+  .print-doc-practice {
+    font-size: 9pt;
+    color: #6b1e3d;
+    margin: 2pt 0 0 0;
+    font-style: italic;
   }
 
   .demo-watermark {
@@ -466,8 +530,8 @@
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #1e3a5f;
-    border-bottom: 0.5pt solid #b0c4de;
+    color: #3d0e22;
+    border-bottom: 0.5pt solid #c96090;
     padding-bottom: 3pt;
     margin-bottom: 8pt;
   }
@@ -536,7 +600,7 @@
   .print-signature-name {
     font-family: cursive, "Brush Script MT", Georgia, serif;
     font-size: 16pt;
-    color: #1e3a5f;
+    color: #3d0e22;
     font-style: italic;
     margin: 0 0 4pt 0;
     min-height: 20pt;
@@ -587,6 +651,51 @@
   .print-check-item .print-checkbox {
     font-size: 9pt;
     flex-shrink: 0;
+  }
+
+  .print-yesno-row {
+    display: flex;
+    gap: 16pt;
+    align-items: center;
+    font-size: 10pt;
+    margin-bottom: 6pt;
+    border-bottom: 0.5pt solid #eee;
+    padding-bottom: 4pt;
+  }
+
+  .print-yesno-label {
+    flex: 1;
+    color: #222;
+  }
+
+  .print-yesno-answer {
+    font-weight: bold;
+    color: #3d0e22;
+    min-width: 32pt;
+  }
+
+  .print-cancer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    margin-bottom: 10pt;
+  }
+
+  .print-cancer-table th {
+    background: #f0c0d4;
+    color: #3d0e22;
+    padding: 3pt 6pt;
+    text-align: left;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 0.5pt solid #c96090;
+  }
+
+  .print-cancer-table td {
+    padding: 4pt 6pt;
+    border: 0.5pt solid #ddd;
+    color: #222;
   }
 
   .print-footer {

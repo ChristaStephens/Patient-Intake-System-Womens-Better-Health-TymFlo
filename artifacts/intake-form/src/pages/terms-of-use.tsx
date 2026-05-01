@@ -31,6 +31,27 @@ export default function TermsOfUse() {
             <p className="text-sm text-slate-500">Last updated: {new Date().getFullYear()}</p>
           </div>
 
+          {/* Video Walkthrough */}
+          <div className="mb-10 rounded-2xl overflow-hidden border border-brand-pink/20 bg-white shadow-sm">
+            <div className="px-5 py-4 border-b border-brand-pink/10 flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-brand-pink shrink-0" />
+              <h2 className="text-base font-semibold text-brand-deep-berry">
+                Video Walkthrough — How to Complete Your Intake Form
+              </h2>
+            </div>
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                src="/intake-form-tutorial/"
+                title="Patient Intake Form Tutorial"
+                className="absolute inset-0 w-full h-full border-0"
+                allow="autoplay"
+              />
+            </div>
+            <p className="px-5 py-3 text-xs text-slate-500 bg-slate-50 border-t border-slate-100">
+              This short video walks through all 7 sections of the form. Use the controls at the bottom to jump to any section.
+            </p>
+          </div>
+
           <div className="prose-custom">
 
             <Section title="1. Ownership">

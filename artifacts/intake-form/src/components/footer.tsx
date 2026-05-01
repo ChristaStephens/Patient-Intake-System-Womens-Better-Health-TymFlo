@@ -42,6 +42,15 @@ export default function Footer() {
           >
             Privacy Notice
           </Link>
+          <span className="text-slate-300 text-xs" aria-hidden="true">|</span>
+          <a
+            href="/intake-form-tutorial/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-slate-400 hover:text-slate-600 underline underline-offset-2 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
+          >
+            Video Tutorial
+          </a>
         </nav>
 
         {/* Copyright */}

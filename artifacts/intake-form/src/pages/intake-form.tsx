@@ -17,17 +17,28 @@ import {
   FileDown,
   Lock,
   Mail,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import Footer, { PrintFooter } from "@/components/footer";
-import { PRACTICE_NAME, PRACTICE_EMAIL, IS_DEMO } from "@/lib/config";
+import { PRACTICE_NAME, PRACTICE_EMAIL, IS_DEMO, PRACTICE_ADDRESS, PRACTICE_PHYSICIANS } from "@/lib/config";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const STORAGE_KEY = "intake_form_data";
 const STEP_KEY = "intake_form_step";
 
-/* ── Medical Condition List ─────────────────────────────────── */
+/* ── Brand color tokens (mirrors CSS variables) ─────────────── */
+const B = {
+  deepBerry: "#3d0e22",
+  darkRose: "#6b1e3d",
+  brandPink: "#9b3060",
+  lightPink: "#c96090",
+  blush: "#f0c0d4",
+  blushLight: "#faf0f4",
+} as const;
 
+/* ── Medical Condition List ─────────────────────────────────── */
 const CONDITIONS: { label: string; key: string }[] = [
   { label: "Allergies", key: "allergies" },
   { label: "Anemia", key: "anemia" },
@@ -61,20 +72,61 @@ const CONDITIONS: { label: string; key: string }[] = [
   { label: "Stroke", key: "stroke" },
   { label: "Thyroid Disease", key: "thyroidDisease" },
   { label: "Tuberculosis", key: "tuberculosis" },
-  { label: "Venereal Disease", key: "venerealDisease" },
+  { label: "Venereal Disease", key: "venerealDisorder" },
   { label: "Seizure", key: "seizure" },
   { label: "Sickle Cell", key: "sickleCell" },
+];
+
+/* ── OB/GYN Condition List ──────────────────────────────────── */
+const OBGYN_CONDITIONS: { label: string; key: string }[] = [
+  { label: "Abnormal Vaginal Bleeding", key: "abnormalVaginalBleeding" },
+  { label: "Abnormal Pap Smear", key: "abnormalPapSmear" },
+  { label: "Bleeding Between Periods", key: "bleedingBetweenPeriods" },
+  { label: "Breast Lump", key: "breastLump" },
+  { label: "Breast Cancer", key: "breastCancer" },
+  { label: "Breast Surgery", key: "breastSurgery" },
+  { label: "Cervical Cancer", key: "cervicalCancer" },
+  { label: "Chlamydia", key: "chlamydia" },
+  { label: "Colonoscopy", key: "colonoscopy" },
+  { label: "Chiral Surgery", key: "chiralSurgery" },
+  { label: "Endometriosis", key: "endometriosis" },
+  { label: "Extreme Menstrual Pain", key: "extremeMenstrualPain" },
+  { label: "Fibroids", key: "fibroids" },
+  { label: "Genital Warts", key: "genitalWarts" },
+  { label: "Gonorrhea", key: "gonorrhea" },
+  { label: "Herpes", key: "herpes" },
+  { label: "Hot Flashes", key: "hotFlashes" },
+  { label: "HPV", key: "hpv" },
+  { label: "Infertility", key: "infertility" },
+  { label: "Irregular Periods", key: "irregularPeriods" },
+  { label: "Nipple Discharge", key: "nippleDischarge" },
+  { label: "Ovarian Cysts", key: "ovarianCysts" },
+  { label: "Ovarian Cancer", key: "ovarianCancer" },
+  { label: "Painful Intercourse", key: "painfulIntercourse" },
+  { label: "Pelvic Inflammatory Disease", key: "pelvicInflammatoryDisease" },
+  { label: "Pelvic Floor Issues", key: "pelvicFloorIssues" },
+  { label: "Uterine Cancer", key: "uterineCancer" },
+  { label: "Urinary Incontinence", key: "urinaryIncontinence" },
+  { label: "Yeast Infection", key: "yeastInfection" },
+  { label: "Hormone Replacement Therapy", key: "hormoneReplacementTherapy" },
 ];
 
 function capFirst(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
-
 function pastKey(key: string): string { return `past${capFirst(key)}`; }
 function famKey(key: string): string { return `family${capFirst(key)}`; }
+function obgynKey(key: string): string { return `obgyn${capFirst(key)}`; }
+
+/* ── Cancer History Entry ───────────────────────────────────── */
+interface CancerEntry {
+  id: string;
+  relation: string;
+  cancerType: string;
+  ageAtDiagnosis: string;
+}
 
 /* ── FormData ───────────────────────────────────────────────── */
-
 interface FormData {
   // Personal
   firstName: string; lastName: string; preferredName: string;
@@ -99,11 +151,11 @@ interface FormData {
   pastLungDisease: boolean; pastMigraines: boolean; pastOsteoporosis: boolean;
   pastPhlebitis: boolean; pastSkinDisorder: boolean; pastStomachUlcer: boolean;
   pastStroke: boolean; pastThyroidDisease: boolean; pastTuberculosis: boolean;
-  pastVenerealDisease: boolean; pastSeizure: boolean; pastSickleCell: boolean;
+  pastVenerealDisorder: boolean; pastSeizure: boolean; pastSickleCell: boolean;
   pastMedicalOther: string;
   // Clinical free-text
   pastSurgeries: string; pastHospitalizations: string; chronicConditions: string;
-  // Family Medical History — checkboxes (same 35 conditions)
+  // Family Medical History — checkboxes (same conditions)
   familyAllergies: boolean; familyAnemia: boolean; familyAnxietyDisorder: boolean;
   familyArthritis: boolean; familyAsthma: boolean; familyAidsHiv: boolean;
   familyBleedingDisorder: boolean; familyBloodTransfusion: boolean;
@@ -115,10 +167,41 @@ interface FormData {
   familyLungDisease: boolean; familyMigraines: boolean; familyOsteoporosis: boolean;
   familyPhlebitis: boolean; familySkinDisorder: boolean; familyStomachUlcer: boolean;
   familyStroke: boolean; familyThyroidDisease: boolean; familyTuberculosis: boolean;
-  familyVenerealDisease: boolean; familySeizure: boolean; familySickleCell: boolean;
+  familyVenerealDisorder: boolean; familySeizure: boolean; familySickleCell: boolean;
   familyHistoryOther: string;
-  // Social History
+  // OB/GYN History — checkboxes
+  obgynAbnormalVaginalBleeding: boolean; obgynAbnormalPapSmear: boolean;
+  obgynBleedingBetweenPeriods: boolean; obgynBreastLump: boolean;
+  obgynBreastCancer: boolean; obgynBreastSurgery: boolean;
+  obgynCervicalCancer: boolean; obgynChlamydia: boolean;
+  obgynColonoscopy: boolean; obgynChiralSurgery: boolean;
+  obgynEndometriosis: boolean; obgynExtremeMenstrualPain: boolean;
+  obgynFibroids: boolean; obgynGenitalWarts: boolean;
+  obgynGonorrhea: boolean; obgynHerpes: boolean;
+  obgynHotFlashes: boolean; obgynHpv: boolean;
+  obgynInfertility: boolean; obgynIrregularPeriods: boolean;
+  obgynNippleDischarge: boolean; obgynOvarianCysts: boolean;
+  obgynOvarianCancer: boolean; obgynPainfulIntercourse: boolean;
+  obgynPelvicInflammatoryDisease: boolean; obgynPelvicFloorIssues: boolean;
+  obgynUterineCancer: boolean; obgynUrinaryIncontinence: boolean;
+  obgynYeastInfection: boolean; obgynHormoneReplacementTherapy: boolean;
+  // Menstrual & Reproductive History
+  lastPeriodDate: string;
+  periodFrequency: string;
+  periodDuration: string;
+  periodsHeavy: string;
+  periodsAffectActivities: string;
+  numberOfPregnancies: string;
+  deliveryType: string;
+  // Social / Behavioral History
   tobaccoUse: string; alcoholUse: string; substanceUse: string;
+  sexuallyActive: string;
+  stdCheck: string;
+  domesticAbuse: string;
+  caffeinePerDay: string;
+  exerciseFrequency: string;
+  // Family / Patient Cancer History
+  cancerHistory: CancerEntry[];
   // Emergency
   emergencyContactName: string; emergencyContactPhone: string; emergencyContactRelationship: string;
   // Insurance
@@ -128,7 +211,8 @@ interface FormData {
   secondaryInsuranceProvider: string; secondaryPolicyNumber: string; secondaryGroupNumber: string;
   // Legal
   agreeToPrivacyNotice: boolean; agreeToAssignmentOfBenefits: boolean;
-  agreeToFinancialResponsibility: boolean; agreeToTerms: boolean;
+  agreeToFinancialResponsibility: boolean; agreeToInsuranceWaiver: boolean;
+  agreeToTerms: boolean;
   signatureText: string; signatureDate: string;
   signatureData: string; signatureTimestamp: string;
 }
@@ -137,6 +221,9 @@ const BOOL_FALSE_CONDITIONS: Record<string, boolean> = {};
 CONDITIONS.forEach(({ key }) => {
   BOOL_FALSE_CONDITIONS[pastKey(key)] = false;
   BOOL_FALSE_CONDITIONS[famKey(key)] = false;
+});
+OBGYN_CONDITIONS.forEach(({ key }) => {
+  BOOL_FALSE_CONDITIONS[obgynKey(key)] = false;
 });
 
 const INITIAL_FORM: FormData = {
@@ -160,7 +247,7 @@ const INITIAL_FORM: FormData = {
   pastLungDisease: false, pastMigraines: false, pastOsteoporosis: false,
   pastPhlebitis: false, pastSkinDisorder: false, pastStomachUlcer: false,
   pastStroke: false, pastThyroidDisease: false, pastTuberculosis: false,
-  pastVenerealDisease: false, pastSeizure: false, pastSickleCell: false,
+  pastVenerealDisorder: false, pastSeizure: false, pastSickleCell: false,
   pastMedicalOther: "",
   pastSurgeries: "", pastHospitalizations: "", chronicConditions: "",
   // family medical checkboxes
@@ -175,22 +262,50 @@ const INITIAL_FORM: FormData = {
   familyLungDisease: false, familyMigraines: false, familyOsteoporosis: false,
   familyPhlebitis: false, familySkinDisorder: false, familyStomachUlcer: false,
   familyStroke: false, familyThyroidDisease: false, familyTuberculosis: false,
-  familyVenerealDisease: false, familySeizure: false, familySickleCell: false,
+  familyVenerealDisorder: false, familySeizure: false, familySickleCell: false,
   familyHistoryOther: "",
+  // OB/GYN checkboxes
+  obgynAbnormalVaginalBleeding: false, obgynAbnormalPapSmear: false,
+  obgynBleedingBetweenPeriods: false, obgynBreastLump: false,
+  obgynBreastCancer: false, obgynBreastSurgery: false,
+  obgynCervicalCancer: false, obgynChlamydia: false,
+  obgynColonoscopy: false, obgynChiralSurgery: false,
+  obgynEndometriosis: false, obgynExtremeMenstrualPain: false,
+  obgynFibroids: false, obgynGenitalWarts: false,
+  obgynGonorrhea: false, obgynHerpes: false,
+  obgynHotFlashes: false, obgynHpv: false,
+  obgynInfertility: false, obgynIrregularPeriods: false,
+  obgynNippleDischarge: false, obgynOvarianCysts: false,
+  obgynOvarianCancer: false, obgynPainfulIntercourse: false,
+  obgynPelvicInflammatoryDisease: false, obgynPelvicFloorIssues: false,
+  obgynUterineCancer: false, obgynUrinaryIncontinence: false,
+  obgynYeastInfection: false, obgynHormoneReplacementTherapy: false,
+  // Menstrual & Reproductive
+  lastPeriodDate: "", periodFrequency: "", periodDuration: "",
+  periodsHeavy: "", periodsAffectActivities: "",
+  numberOfPregnancies: "", deliveryType: "",
+  // Social
   tobaccoUse: "", alcoholUse: "", substanceUse: "",
+  sexuallyActive: "", stdCheck: "", domesticAbuse: "",
+  caffeinePerDay: "", exerciseFrequency: "",
+  // Cancer history
+  cancerHistory: [],
+  // Emergency
   emergencyContactName: "", emergencyContactPhone: "", emergencyContactRelationship: "",
+  // Insurance
   relationshipToInsured: "self", primaryInsuredName: "", primaryInsuredDOB: "",
   insuranceProvider: "", policyNumber: "", groupNumber: "",
   hasSecondaryInsurance: false,
   secondaryInsuranceProvider: "", secondaryPolicyNumber: "", secondaryGroupNumber: "",
+  // Legal
   agreeToPrivacyNotice: false, agreeToAssignmentOfBenefits: false,
-  agreeToFinancialResponsibility: false, agreeToTerms: false,
+  agreeToFinancialResponsibility: false, agreeToInsuranceWaiver: false,
+  agreeToTerms: false,
   signatureText: "", signatureDate: "",
   signatureData: "", signatureTimestamp: "",
 };
 
 /* ── Steps ──────────────────────────────────────────────────── */
-
 const STEPS = [
   { id: "personal", title: "Personal Information", Icon: User },
   { id: "address", title: "Address", Icon: MapPin },
@@ -204,7 +319,6 @@ const STEPS = [
 type FieldErrors = Record<string, string>;
 
 /* ── Storage helpers ────────────────────────────────────────── */
-
 function serializeForm(data: FormData): string { return JSON.stringify(data); }
 
 function deserializeForm(raw: string): FormData | null {
@@ -241,13 +355,17 @@ function formatDate(val: string) {
 }
 
 /* ── Validation ─────────────────────────────────────────────── */
-
 function validateStep(stepIndex: number, form: FormData): FieldErrors {
   const errors: FieldErrors = {};
   if (stepIndex === 0) {
     if (!form.firstName.trim()) errors.firstName = "First name is required.";
     if (!form.lastName.trim()) errors.lastName = "Last name is required.";
     if (!form.dateOfBirth) errors.dateOfBirth = "Date of birth is required.";
+    if (!form.email.trim()) errors.email = "Email address is required.";
+    if (!form.phone.trim()) errors.phone = "Phone number is required.";
+  }
+  if (stepIndex === 1) {
+    if (!form.address.trim()) errors.address = "Street address is required.";
   }
   if (stepIndex === 2) {
     if (!form.reasonForVisit.trim()) errors.reasonForVisit = "Please describe your reason for visiting.";
@@ -256,17 +374,21 @@ function validateStep(stepIndex: number, form: FormData): FieldErrors {
     if (!form.agreeToPrivacyNotice) errors.agreeToPrivacyNotice = "You must acknowledge the Notice of Privacy Practices.";
     if (!form.agreeToAssignmentOfBenefits) errors.agreeToAssignmentOfBenefits = "You must agree to the Assignment of Benefits.";
     if (!form.agreeToFinancialResponsibility) errors.agreeToFinancialResponsibility = "You must acknowledge financial responsibility.";
+    if (!form.agreeToInsuranceWaiver) errors.agreeToInsuranceWaiver = "You must acknowledge the Insurance & Claims Notice of Responsibility.";
     if (!form.signatureText.trim() && !form.signatureData) errors.signatureText = "Please sign by drawing or typing your full legal name.";
   }
   return errors;
 }
 
 /* ── CSV Export ─────────────────────────────────────────────── */
-
 function generateCSV(form: FormData): string {
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const pastSelected = CONDITIONS.filter(c => form[pastKey(c.key) as keyof FormData] as boolean).map(c => c.label).join(", ");
   const famSelected = CONDITIONS.filter(c => form[famKey(c.key) as keyof FormData] as boolean).map(c => c.label).join(", ");
+  const obgynSelected = OBGYN_CONDITIONS.filter(c => form[obgynKey(c.key) as keyof FormData] as boolean).map(c => c.label).join(", ");
+  const cancerHistoryStr = (form.cancerHistory || [])
+    .map(e => `${e.relation}: ${e.cancerType} (age ${e.ageAtDiagnosis})`)
+    .join("; ");
 
   const rows: [string, string][] = [
     ["Last Name", form.lastName],
@@ -299,6 +421,20 @@ function generateCSV(form: FormData): string {
     ["Chronic Conditions", form.chronicConditions],
     ["Family Medical History (Conditions)", famSelected],
     ["Family Medical History (Other)", form.familyHistoryOther],
+    ["OB/GYN History", obgynSelected],
+    ["Last Period Date", formatDate(form.lastPeriodDate)],
+    ["Period Frequency", form.periodFrequency],
+    ["Period Duration", form.periodDuration],
+    ["Heavy Periods", form.periodsHeavy],
+    ["Periods Affect Daily Activities", form.periodsAffectActivities],
+    ["Number of Pregnancies", form.numberOfPregnancies],
+    ["Delivery Type", form.deliveryType],
+    ["Sexually Active", form.sexuallyActive],
+    ["STD Screening Requested", form.stdCheck],
+    ["Domestic/Verbal Abuse in Home", form.domesticAbuse],
+    ["Caffeine Per Day", form.caffeinePerDay],
+    ["Exercise Frequency", form.exerciseFrequency],
+    ["Family/Patient Cancer History", cancerHistoryStr],
     ["Tobacco Use", form.tobaccoUse],
     ["Alcohol Use", form.alcoholUse],
     ["Substance Use", form.substanceUse],
@@ -318,6 +454,7 @@ function generateCSV(form: FormData): string {
     ["Privacy Notice Acknowledged", form.agreeToPrivacyNotice ? "Yes" : "No"],
     ["Assignment of Benefits Agreed", form.agreeToAssignmentOfBenefits ? "Yes" : "No"],
     ["Financial Responsibility Acknowledged", form.agreeToFinancialResponsibility ? "Yes" : "No"],
+    ["Insurance Waiver / Notice of Responsibility", form.agreeToInsuranceWaiver ? "Yes" : "No"],
     ["Patient Certification", form.agreeToTerms ? "Yes" : "No"],
     ["Electronic Signature", form.signatureText || (form.signatureData ? "[Drawn Signature — see PDF]" : "")],
     ["Signature Date/Time", form.signatureTimestamp || form.signatureDate],
@@ -346,6 +483,7 @@ export default function IntakeForm() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [expandedStep, setExpandedStep] = useState<number>(0);
   const [showDownload, setShowDownload] = useState(false);
+  const [hasDownloaded, setHasDownloaded] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const [sessionConfirmation, setSessionConfirmation] = useState<string | null>(null);
@@ -404,6 +542,10 @@ export default function IntakeForm() {
     },
     []
   );
+
+  const handleCancerHistoryChange = useCallback((entries: CancerEntry[]) => {
+    setForm((prev) => ({ ...prev, cancerHistory: entries }));
+  }, []);
 
   const saveStepProgress = (stepNum: number) => {
     try {
@@ -562,15 +704,28 @@ export default function IntakeForm() {
         )}
 
         {/* Header */}
-        <header className="mb-5 no-print">
-          <h1 className="text-3xl font-bold text-slate-800 mb-1 leading-tight">Patient Intake Form</h1>
-          <p className="text-slate-500 text-base">Fill in each section below. Your progress is saved as you go.</p>
+        <header className="mb-5 no-print text-center">
+          <h1 className="text-3xl font-bold mb-0.5 leading-tight" style={{ color: B.deepBerry }}>
+            Patient Intake Form
+          </h1>
+          <p className="font-semibold text-base" style={{ color: B.darkRose }}>{PRACTICE_NAME}</p>
+          <p className="text-slate-500 text-sm">
+            {PRACTICE_ADDRESS.street} · {PRACTICE_ADDRESS.city}, {PRACTICE_ADDRESS.state} {PRACTICE_ADDRESS.zip}
+          </p>
+          <p className="text-slate-500 text-sm">
+            Phone: {PRACTICE_ADDRESS.phone} · Fax: {PRACTICE_ADDRESS.fax}
+          </p>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {PRACTICE_PHYSICIANS.join(" · ")}
+          </p>
+          <p className="text-slate-500 text-base mt-2">Fill in each section below. Your progress is saved as you go.</p>
         </header>
 
         {/* Privacy Notice Banner */}
-        <div className="mb-6 flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 no-print" role="note" aria-label="Privacy notice">
-          <Lock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" aria-hidden="true" />
-          <p className="text-sm text-blue-800 leading-relaxed">
+        <div className="mb-6 flex items-start gap-3 rounded-xl px-4 py-3 no-print" role="note" aria-label="Privacy notice"
+          style={{ backgroundColor: B.blushLight, border: `1px solid ${B.blush}` }}>
+          <Lock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: B.darkRose }} aria-hidden="true" />
+          <p className="text-sm leading-relaxed" style={{ color: B.deepBerry }}>
             <strong>Your information is not stored on this website.</strong> After completing the form, you will download or print your information and send it directly to the office.
           </p>
         </div>
@@ -581,10 +736,10 @@ export default function IntakeForm() {
             <span className="text-sm font-medium text-slate-600">
               {showDownload ? "All sections complete" : `Section ${Math.min(currentStep + 1, STEPS.length)} of ${STEPS.length}`}
             </span>
-            <span className="text-sm font-semibold text-teal-700">{progress}%</span>
+            <span className="text-sm font-semibold" style={{ color: B.darkRose }}>{progress}%</span>
           </div>
           <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-            <div className="h-full bg-teal-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%`, backgroundColor: B.brandPink }} />
           </div>
           <div className="flex items-center mt-3 gap-1" aria-hidden="true">
             {STEPS.map((step, i) => {
@@ -596,7 +751,7 @@ export default function IntakeForm() {
                     {done ? <CheckCircle2 className="w-4 h-4" /> : <span>{i + 1}</span>}
                   </div>
                   {i < STEPS.length - 1 && (
-                    <div className={`h-0.5 flex-1 mx-1 rounded ${done ? "bg-teal-400" : "bg-slate-300"}`} />
+                    <div className="h-0.5 flex-1 mx-1 rounded" style={{ backgroundColor: done ? B.lightPink : "#cbd5e1" }} />
                   )}
                 </div>
               );
@@ -618,13 +773,24 @@ export default function IntakeForm() {
                 key={step.id}
                 id={`step-section-${stepIndex}`}
                 role="listitem"
-                className={`rounded-2xl border-2 transition-all duration-300 overflow-hidden
-                  ${isLocked ? "border-slate-200 bg-slate-50 opacity-60" : ""}
-                  ${isExpanded && !isCompleted ? "border-teal-400 bg-white shadow-md" : ""}
-                  ${isCompleted && !isExpanded ? "border-teal-200 bg-teal-50/50" : ""}
-                  ${isCompleted && isExpanded ? "border-teal-300 bg-white shadow-sm" : ""}
-                  ${!isExpanded && !isCompleted && !isLocked ? "border-slate-200 bg-white" : ""}
-                `}
+                className="rounded-2xl border-2 transition-all duration-300 overflow-hidden"
+                style={{
+                  borderColor: isLocked
+                    ? "#e2e8f0"
+                    : isExpanded && !isCompleted
+                    ? B.brandPink
+                    : isCompleted && !isExpanded
+                    ? B.blush
+                    : isCompleted && isExpanded
+                    ? B.lightPink
+                    : "#e2e8f0",
+                  backgroundColor: isLocked
+                    ? "#f8fafc"
+                    : isCompleted && !isExpanded
+                    ? "#fdf8fa"
+                    : "#ffffff",
+                  opacity: isLocked ? 0.6 : 1,
+                }}
               >
                 <button
                   type="button"
@@ -633,21 +799,26 @@ export default function IntakeForm() {
                   aria-expanded={isExpanded}
                   aria-controls={`step-content-${stepIndex}`}
                   className={`w-full flex items-center gap-4 px-6 py-5 text-left transition-colors
-                    ${isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-inset"}
+                    ${isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-inset"}
                   `}
+                  style={{ "--tw-ring-color": B.brandPink } as React.CSSProperties}
                 >
-                  <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center
-                    ${isCompleted ? "bg-teal-500 text-white" : isExpanded ? "bg-teal-100 text-teal-700" : "bg-slate-200 text-slate-500"}
-                  `}>
+                  <div className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: isCompleted ? B.brandPink : isExpanded ? B.blush : "#e2e8f0",
+                      color: isCompleted ? "#ffffff" : isExpanded ? B.darkRose : "#64748b",
+                    }}>
                     {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-lg font-semibold leading-tight ${isLocked ? "text-slate-400" : isCompleted ? "text-teal-800" : "text-slate-800"}`}>
+                      <span className="text-lg font-semibold leading-tight"
+                        style={{ color: isLocked ? "#94a3b8" : isCompleted ? B.deepBerry : "#1e293b" }}>
                         {step.title}
                       </span>
                       {isCompleted && (
-                        <span className="text-xs font-medium text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full">Done</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{ color: B.darkRose, backgroundColor: B.blush }}>Done</span>
                       )}
                     </div>
                     {isLocked && <p className="text-sm text-slate-400 mt-0.5">Complete the previous section to unlock this one.</p>}
@@ -665,11 +836,17 @@ export default function IntakeForm() {
                     <div className="border-t border-slate-100 pt-5">
                       {hasErrors && (
                         <div className="mb-5 flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3" role="alert">
-                          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" aria-hidden="true" />
+                          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
                           <p className="text-sm text-rose-700 font-medium">Please fill in all required fields before continuing.</p>
                         </div>
                       )}
-                      <StepContent stepIndex={stepIndex} form={form} onChange={handleChange} errors={fieldErrors} />
+                      <StepContent
+                        stepIndex={stepIndex}
+                        form={form}
+                        onChange={handleChange}
+                        onCancerHistoryChange={handleCancerHistoryChange}
+                        errors={fieldErrors}
+                      />
                       <div className="mt-6 flex items-center gap-3">
                         {isCompleted && (
                           <button
@@ -683,7 +860,10 @@ export default function IntakeForm() {
                         <button
                           type="button"
                           onClick={() => handleStepSave(stepIndex)}
-                          className="flex-1 py-3 px-5 rounded-xl bg-teal-600 text-white text-base font-semibold hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors shadow-sm"
+                          className="flex-1 py-3 px-5 rounded-xl text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors shadow-sm"
+                          style={{ backgroundColor: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = B.deepBerry)}
+                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = B.darkRose)}
                         >
                           {stepIndex === STEPS.length - 1
                             ? "Sign & Complete Form"
@@ -702,86 +882,115 @@ export default function IntakeForm() {
 
         {/* Download Section */}
         {showDownload && (
-          <div className="mt-6 rounded-2xl border-2 border-slate-800 bg-slate-800 p-7 shadow-lg no-print" role="region" aria-label="Download your completed form">
+          <div className="mt-6 rounded-2xl border-2 p-7 shadow-lg no-print" role="region" aria-label="Download your completed form"
+            style={{ borderColor: B.deepBerry, backgroundColor: B.deepBerry }}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
                 <Download className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-xl font-bold text-white">Your Form Is Ready</h2>
             </div>
-            <p className="text-slate-300 text-base mb-5 leading-relaxed">
+            <p className="text-base mb-5 leading-relaxed" style={{ color: B.blush }}>
               All sections are complete. Download a copy to bring with you or share with your provider.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
-                onClick={() => { window.print(); setShowEmailDialog(true); }}
+                onClick={() => { window.print(); setHasDownloaded(true); setShowEmailDialog(true); }}
                 aria-label="Download completed form as PDF"
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-teal-400 text-slate-900 text-base font-bold hover:bg-teal-300 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-800 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                style={{ backgroundColor: B.lightPink, color: "#ffffff", "--tw-ring-color": B.blush } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = B.brandPink)}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = B.lightPink)}
               >
                 <Download className="w-5 h-5" aria-hidden="true" />
                 Download as PDF
               </button>
               <button
                 type="button"
-                onClick={() => { downloadCSV(form); setShowEmailDialog(true); }}
+                onClick={() => { downloadCSV(form); setHasDownloaded(true); setShowEmailDialog(true); }}
                 aria-label="Export form data as CSV for EHR import"
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-white/15 text-white text-base font-semibold hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-800 border border-white/20 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors border"
+                style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "#ffffff", borderColor: "rgba(255,255,255,0.25)", "--tw-ring-color": "rgba(255,255,255,0.5)" } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.22)")}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.12)")}
               >
                 <FileDown className="w-5 h-5" aria-hidden="true" />
                 Export for EHR (CSV)
               </button>
             </div>
-            <p className="text-slate-400 text-xs mt-3 text-center">
+            <p className="text-xs mt-3 text-center" style={{ color: B.blush }}>
               The CSV file can be imported into most electronic health record systems.
             </p>
-            <p className="text-slate-500 text-xs mt-4 pt-4 border-t border-white/10 text-center">
+            <p className="text-xs mt-4 pt-4 text-center" style={{ borderTop: "1px solid rgba(255,255,255,0.1)", color: "rgba(240,192,212,0.7)" }}>
               This intake system is intended for use by patients of{" "}
-              <span className="font-medium text-slate-300">{PRACTICE_NAME}</span> only.
+              <span className="font-medium" style={{ color: B.blush }}>{PRACTICE_NAME}</span> only.
             </p>
           </div>
         )}
 
         {/* Save Tools */}
-        <div className="mt-6 border border-teal-100 bg-teal-50 rounded-2xl p-6 no-print" role="region" aria-label="Save your progress">
-          <h2 className="text-lg font-bold text-teal-900 mb-1">Save Your Progress</h2>
-          <p className="text-sm text-teal-700 mb-5" role="note">
-            Your form information stays in this browser unless you choose to print or download it.
-          </p>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-5">
-            <div className="flex flex-col gap-1 flex-1">
-              <button type="button" onClick={handleSessionSave} className="save-btn save-btn-session" aria-label="Save for this session">
-                Save for This Session
-              </button>
-              <p className="helper-text">Saves your progress temporarily while this browser tab stays open.</p>
-              {sessionConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-teal-700 bg-teal-100">{sessionConfirmation}</p>}
-            </div>
-            <div className="flex flex-col gap-1 flex-1">
-              <div className="flex items-center gap-2 relative">
-                <button ref={deviceSaveButtonRef} type="button" onClick={handleDeviceSaveRequest} className="save-btn save-btn-device" aria-label="Save progress on this device" aria-describedby={tooltipId}>
-                  Save Progress on This Device
+        <div className="mt-6 rounded-2xl p-6 no-print" role="region" aria-label="Save your progress"
+          style={{ border: `1px solid ${B.blush}`, backgroundColor: B.blushLight }}>
+          {hasDownloaded ? (
+            /* Downloaded — only show Clear Saved Data */
+            <div>
+              <h2 className="text-lg font-bold mb-1" style={{ color: B.deepBerry }}>Privacy & Data</h2>
+              <p className="text-sm mb-5" role="note" style={{ color: B.darkRose }}>
+                Your form is complete. You can remove any locally saved data from this device at any time.
+              </p>
+              <div className="flex flex-col gap-1">
+                <button type="button" onClick={handleClear} className="save-btn save-btn-clear" aria-label="Clear saved data">
+                  Clear Saved Data
                 </button>
-                <div className="relative">
-                  <button ref={tooltipButtonRef} type="button" aria-label="Privacy information about saving on this device" aria-describedby={tooltipId} aria-expanded={tooltipVisible}
-                    onClick={() => setTooltipVisible((v) => !v)} onKeyDown={(e) => { if (e.key === "Escape") setTooltipVisible(false); }} className="tooltip-trigger">
-                    <Info className="w-4 h-4" aria-hidden="true" />
+                <p className="helper-text">Removes any saved form information from this device and browser.</p>
+                {clearConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-rose-700 bg-rose-50">{clearConfirmation}</p>}
+              </div>
+            </div>
+          ) : (
+            /* Form in progress — show all three options */
+            <div>
+              <h2 className="text-lg font-bold mb-1" style={{ color: B.deepBerry }}>Save Your Progress</h2>
+              <p className="text-sm mb-5" role="note" style={{ color: B.darkRose }}>
+                Your form information stays in this browser unless you choose to print or download it.
+              </p>
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-5">
+                <div className="flex flex-col gap-1 flex-1">
+                  <button type="button" onClick={handleSessionSave} className="save-btn save-btn-session" aria-label="Save for this session">
+                    Save for This Session
                   </button>
-                  <div ref={tooltipRef} id={tooltipId} role="tooltip" aria-hidden={!tooltipVisible} className={`tooltip-content ${tooltipVisible ? "tooltip-visible" : "tooltip-hidden"}`}>
-                    This saves your progress only on this device and browser so you can come back later. Do not use this option on a shared or public computer.
+                  <p className="helper-text">Saves your progress temporarily while this browser tab stays open.</p>
+                  {sessionConfirmation && <p role="status" aria-live="polite" className="confirmation-msg" style={{ color: B.darkRose, backgroundColor: B.blush }}>{sessionConfirmation}</p>}
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex items-center gap-2 relative">
+                    <button ref={deviceSaveButtonRef} type="button" onClick={handleDeviceSaveRequest} className="save-btn save-btn-device" aria-label="Save progress on this device" aria-describedby={tooltipId}>
+                      Save Progress on This Device
+                    </button>
+                    <div className="relative">
+                      <button ref={tooltipButtonRef} type="button" aria-label="Privacy information about saving on this device" aria-describedby={tooltipId} aria-expanded={tooltipVisible}
+                        onClick={() => setTooltipVisible((v) => !v)} onKeyDown={(e) => { if (e.key === "Escape") setTooltipVisible(false); }} className="tooltip-trigger">
+                        <Info className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                      <div ref={tooltipRef} id={tooltipId} role="tooltip" aria-hidden={!tooltipVisible} className={`tooltip-content ${tooltipVisible ? "tooltip-visible" : "tooltip-hidden"}`}>
+                        This saves your progress only on this device and browser so you can come back later. Do not use this option on a shared or public computer.
+                      </div>
+                    </div>
                   </div>
+                  <p className="helper-text">Saves your progress only on this device and browser so you can return later.</p>
+                  {deviceConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-emerald-700 bg-emerald-50">{deviceConfirmation}</p>}
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <button type="button" onClick={handleClear} className="save-btn save-btn-clear" aria-label="Clear saved data">
+                    Clear Saved Data
+                  </button>
+                  <p className="helper-text">Removes any saved form information from this device and browser.</p>
+                  {clearConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-rose-700 bg-rose-50">{clearConfirmation}</p>}
                 </div>
               </div>
-              <p className="helper-text">Saves your progress only on this device and browser so you can return later.</p>
-              {deviceConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-emerald-700 bg-emerald-50">{deviceConfirmation}</p>}
             </div>
-            <div className="flex flex-col gap-1 flex-1">
-              <button type="button" onClick={handleClear} className="save-btn save-btn-clear" aria-label="Clear saved data">
-                Clear Saved Data
-              </button>
-              <p className="helper-text">Removes any saved form information from this device and browser.</p>
-              {clearConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-rose-700 bg-rose-50">{clearConfirmation}</p>}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Print View */}
@@ -800,8 +1009,9 @@ export default function IntakeForm() {
           <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-                  <Mail className="w-5 h-5 text-teal-600" aria-hidden="true" />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: B.blush }}>
+                  <Mail className="w-5 h-5" style={{ color: B.darkRose }} aria-hidden="true" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-800 leading-snug">Next Step: Send Your Form</h2>
               </div>
@@ -809,7 +1019,8 @@ export default function IntakeForm() {
                 type="button"
                 onClick={() => setShowEmailDialog(false)}
                 aria-label="Close dialog"
-                className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 ml-2"
+                className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 ml-2"
+                style={{ "--tw-ring-color": B.brandPink } as React.CSSProperties}
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -820,7 +1031,10 @@ export default function IntakeForm() {
             </p>
             <a
               href={`mailto:${PRACTICE_EMAIL}?subject=Patient Intake Form — ${PRACTICE_NAME}&body=Please find my completed patient intake form attached.`}
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-teal-600 text-white text-base font-semibold hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors mb-4"
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors mb-4"
+              style={{ backgroundColor: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = B.deepBerry)}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = B.darkRose)}
             >
               <Mail className="w-5 h-5" aria-hidden="true" />
               Email to {PRACTICE_EMAIL}
@@ -849,7 +1063,9 @@ export default function IntakeForm() {
           <div ref={modalRef} className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-start justify-between mb-4">
               <h2 id={modalTitleId} className="text-lg font-bold text-slate-800 pr-4 leading-snug">Save Progress on This Device</h2>
-              <button ref={modalFirstFocusRef} type="button" onClick={handleModalClose} aria-label="Close dialog" className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <button ref={modalFirstFocusRef} type="button" onClick={handleModalClose} aria-label="Close dialog"
+                className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2"
+                style={{ "--tw-ring-color": B.brandPink } as React.CSSProperties}>
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
@@ -858,14 +1074,17 @@ export default function IntakeForm() {
               <strong>For your privacy, do not use this feature on a shared or public computer.</strong>
             </p>
             <div className="flex items-start gap-3 mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <input id="modal-privacy-checkbox" type="checkbox" checked={modalChecked} onChange={(e) => setModalChecked(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" aria-required="true" />
+              <input id="modal-privacy-checkbox" type="checkbox" checked={modalChecked} onChange={(e) => setModalChecked(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300" style={{ accentColor: B.brandPink }} aria-required="true" />
               <label htmlFor="modal-privacy-checkbox" className="text-sm text-slate-700 leading-relaxed cursor-pointer">
                 I understand this saves my information only on this device and browser. Do not use this option on a shared or public computer.
               </label>
             </div>
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={handleModalClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Cancel</button>
-              <button type="button" onClick={handleModalSave} disabled={!modalChecked} aria-disabled={!modalChecked} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors">
+              <button type="button" onClick={handleModalSave} disabled={!modalChecked} aria-disabled={!modalChecked}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                style={{ backgroundColor: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}>
                 Save on This Device
               </button>
             </div>
@@ -896,7 +1115,8 @@ function ConditionChecklist({ prefix, form, onChange }: {
               type="checkbox"
               checked={checked}
               onChange={onChange}
-              className="h-4 w-4 shrink-0 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              className="h-4 w-4 shrink-0 rounded border-slate-300"
+              style={{ accentColor: B.brandPink }}
             />
             <span className="text-sm text-slate-700 group-hover:text-slate-900 leading-snug">{label}</span>
           </label>
@@ -906,8 +1126,151 @@ function ConditionChecklist({ prefix, form, onChange }: {
   );
 }
 
-/* ── Signature Pad (draw) ─────────────────────────────────────── */
+function OBGYNChecklist({ form, onChange }: {
+  form: FormData;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+      {OBGYN_CONDITIONS.map(({ label, key }) => {
+        const fieldName = obgynKey(key);
+        const checked = form[fieldName as keyof FormData] as boolean;
+        return (
+          <label key={fieldName} className="flex items-center gap-2 cursor-pointer group py-0.5">
+            <input
+              id={fieldName}
+              name={fieldName}
+              type="checkbox"
+              checked={checked}
+              onChange={onChange}
+              className="h-4 w-4 shrink-0 rounded border-slate-300"
+              style={{ accentColor: B.brandPink }}
+            />
+            <span className="text-sm text-slate-700 group-hover:text-slate-900 leading-snug">{label}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
 
+/* ── Yes/No Radio Group ─────────────────────────────────────── */
+function YesNo({ name, value, onChange, id }: {
+  name: string;
+  value: string;
+  id: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="flex gap-6" role="group" aria-labelledby={`${id}-label`}>
+      {["Yes", "No"].map(opt => (
+        <label key={opt} className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name={name}
+            value={opt}
+            checked={value === opt}
+            onChange={onChange}
+            className="h-4 w-4 border-slate-300"
+            style={{ accentColor: B.brandPink }}
+          />
+          <span className="text-sm text-slate-700">{opt}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/* ── Cancer History Table ────────────────────────────────────── */
+function CancerHistoryTable({ entries, onChange }: {
+  entries: CancerEntry[];
+  onChange: (entries: CancerEntry[]) => void;
+}) {
+  const addRow = () => {
+    onChange([...entries, { id: crypto.randomUUID(), relation: "", cancerType: "", ageAtDiagnosis: "" }]);
+  };
+  const removeRow = (id: string) => {
+    onChange(entries.filter(e => e.id !== id));
+  };
+  const updateRow = (id: string, field: keyof Omit<CancerEntry, "id">, value: string) => {
+    onChange(entries.map(e => e.id === id ? { ...e, [field]: value } : e));
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {entries.length === 0 && (
+        <p className="text-sm text-slate-400 italic">No entries yet. Click "Add Entry" to add a family or personal cancer history.</p>
+      )}
+      {entries.map((entry, idx) => (
+        <div key={entry.id} className="flex flex-col sm:flex-row gap-2 items-start rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <span className="text-xs font-semibold text-slate-400 pt-2 shrink-0 w-5">{idx + 1}.</span>
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block" htmlFor={`cancer-relation-${entry.id}`}>
+                Who (relation)
+              </label>
+              <input
+                id={`cancer-relation-${entry.id}`}
+                type="text"
+                value={entry.relation}
+                onChange={e => updateRow(entry.id, "relation", e.target.value)}
+                className="form-input"
+                placeholder="e.g. Mother, Self"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block" htmlFor={`cancer-type-${entry.id}`}>
+                Type of Cancer
+              </label>
+              <input
+                id={`cancer-type-${entry.id}`}
+                type="text"
+                value={entry.cancerType}
+                onChange={e => updateRow(entry.id, "cancerType", e.target.value)}
+                className="form-input"
+                placeholder="e.g. Breast, Colon"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block" htmlFor={`cancer-age-${entry.id}`}>
+                Age at Diagnosis
+              </label>
+              <input
+                id={`cancer-age-${entry.id}`}
+                type="text"
+                value={entry.ageAtDiagnosis}
+                onChange={e => updateRow(entry.id, "ageAtDiagnosis", e.target.value)}
+                className="form-input"
+                placeholder="e.g. 52"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => removeRow(entry.id)}
+            aria-label={`Remove entry ${idx + 1}`}
+            className="shrink-0 mt-1 p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={addRow}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 border-dashed transition-colors focus:outline-none focus:ring-2"
+        style={{ borderColor: B.lightPink, color: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = B.blushLight)}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+      >
+        <Plus className="w-4 h-4" />
+        Add Entry
+      </button>
+    </div>
+  );
+}
+
+/* ── Signature Pad (draw) ─────────────────────────────────────── */
 function SignaturePad({ onSigned, onCleared }: {
   onSigned: (dataUrl: string) => void;
   onCleared: () => void;
@@ -928,11 +1291,11 @@ function SignaturePad({ onSigned, onCleared }: {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.scale(dpr, dpr);
-    ctx.strokeStyle = "#1e3a5f";
+    ctx.strokeStyle = B.deepBerry;
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.fillStyle = "#1e3a5f";
+    ctx.fillStyle = B.deepBerry;
   }, []);
 
   function getXY(e: React.MouseEvent | React.TouchEvent) {
@@ -959,9 +1322,9 @@ function SignaturePad({ onSigned, onCleared }: {
   function doDraw(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault();
     if (!isDrawingRef.current || !lastPosRef.current) return;
-    const pos = getXY(e);
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
+    const pos = getXY(e);
     ctx.beginPath();
     ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
     ctx.lineTo(pos.x, pos.y);
@@ -975,7 +1338,6 @@ function SignaturePad({ onSigned, onCleared }: {
 
   function endDraw(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault();
-    if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
     lastPosRef.current = null;
     if (hasContentRef.current && canvasRef.current) {
@@ -988,8 +1350,7 @@ function SignaturePad({ onSigned, onCleared }: {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
-    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     hasContentRef.current = false;
     setHasContent(false);
     onCleared();
@@ -997,7 +1358,7 @@ function SignaturePad({ onSigned, onCleared }: {
 
   return (
     <div>
-      <div className="relative border-2 border-slate-300 rounded-xl bg-white overflow-hidden" style={{ height: "110px" }}>
+      <div className="relative border-2 rounded-xl bg-white overflow-hidden" style={{ height: "110px", borderColor: B.blush }}>
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
@@ -1017,7 +1378,7 @@ function SignaturePad({ onSigned, onCleared }: {
       </div>
       {hasContent && (
         <button type="button" onClick={clearCanvas}
-          className="mt-1.5 text-xs text-rose-500 hover:text-rose-700 underline focus:outline-none">
+          className="mt-1.5 text-xs underline focus:outline-none" style={{ color: B.brandPink }}>
           Clear &amp; redraw
         </button>
       )}
@@ -1026,7 +1387,6 @@ function SignaturePad({ onSigned, onCleared }: {
 }
 
 /* ── Signature Block (draw + type switcher) ───────────────────── */
-
 function SignatureBlock({ form, onChange, errors }: {
   form: FormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
@@ -1041,22 +1401,27 @@ function SignatureBlock({ form, onChange, errors }: {
   const hasError = !!errors.signatureText;
 
   return (
-    <div className={`rounded-xl border-2 p-5 ${hasError ? "border-rose-300 bg-rose-50" : "border-teal-200 bg-teal-50"}`}>
-      <p className="text-sm font-bold text-slate-700 mb-1 uppercase tracking-wide">Electronic Signature</p>
+    <div className="rounded-xl border-2 p-5" style={{
+      borderColor: hasError ? "#fca5a5" : B.blush,
+      backgroundColor: hasError ? "#fff1f2" : B.blushLight,
+    }}>
+      <p className="text-sm font-bold mb-1 uppercase tracking-wide" style={{ color: B.deepBerry }}>Electronic Signature</p>
       <p className="text-sm text-slate-600 leading-relaxed mb-4">
         Your signature confirms you have read and agreed to all authorizations on this form.
       </p>
 
-      {/* Mode tabs */}
       <div className="flex gap-1 mb-4 bg-white border border-slate-200 rounded-lg p-1 w-fit">
         {(["draw", "type"] as const).map((m) => (
           <button
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-              mode === m ? "bg-teal-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
+            className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: mode === m ? B.darkRose : "transparent",
+              color: mode === m ? "#ffffff" : "#64748b",
+              "--tw-ring-color": B.brandPink,
+            } as React.CSSProperties}
           >
             {m === "draw" ? "Draw" : "Type"}
           </button>
@@ -1087,7 +1452,7 @@ function SignatureBlock({ form, onChange, errors }: {
             />
           </Field>
           {form.signatureText && (
-            <div className="mt-3 p-3 bg-white border border-teal-200 rounded-lg">
+            <div className="mt-3 p-3 bg-white rounded-lg" style={{ border: `1px solid ${B.blush}` }}>
               <p className="text-xs text-slate-500 mb-1">Signed as:</p>
               <p className="signature-display">{form.signatureText}</p>
             </div>
@@ -1096,7 +1461,7 @@ function SignatureBlock({ form, onChange, errors }: {
       )}
 
       {hasError && (
-        <p className="mt-2 text-sm text-rose-600 flex items-center gap-1.5" role="alert">
+        <p className="mt-2 text-sm text-rose-700 flex items-center gap-1.5" role="alert">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           Please sign by drawing or typing your full legal name.
         </p>
@@ -1106,11 +1471,11 @@ function SignatureBlock({ form, onChange, errors }: {
 }
 
 /* ── Step Content ─────────────────────────────────────────────── */
-
-function StepContent({ stepIndex, form, onChange, errors }: {
+function StepContent({ stepIndex, form, onChange, onCancerHistoryChange, errors }: {
   stepIndex: number;
   form: FormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  onCancerHistoryChange: (entries: CancerEntry[]) => void;
   errors: FieldErrors;
 }) {
   const checkboxOnChange = onChange as (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -1133,11 +1498,11 @@ function StepContent({ stepIndex, form, onChange, errors }: {
         <input id="dateOfBirth" name="dateOfBirth" type="date" autoComplete="bday" value={form.dateOfBirth} onChange={onChange} className={`form-input ${errors.dateOfBirth ? "form-input-error" : ""}`} aria-required="true" />
       </Field>
       <TwoCol>
-        <Field label="Email Address" htmlFor="email">
-          <input id="email" name="email" type="email" autoComplete="email" value={form.email} onChange={onChange} className="form-input" placeholder="e.g. jane@email.com" />
+        <Field label="Email Address" required htmlFor="email" error={errors.email}>
+          <input id="email" name="email" type="email" autoComplete="email" value={form.email} onChange={onChange} className={`form-input ${errors.email ? "form-input-error" : ""}`} aria-required="true" placeholder="e.g. jane@email.com" />
         </Field>
-        <Field label="Phone Number" htmlFor="phone">
-          <input id="phone" name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={onChange} className="form-input" placeholder="e.g. (555) 000-0000" />
+        <Field label="Phone Number" required htmlFor="phone" error={errors.phone}>
+          <input id="phone" name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={onChange} className={`form-input ${errors.phone ? "form-input-error" : ""}`} aria-required="true" placeholder="e.g. (555) 000-0000" />
         </Field>
       </TwoCol>
       <TwoCol>
@@ -1212,19 +1577,19 @@ function StepContent({ stepIndex, form, onChange, errors }: {
   // Step 1 — Address
   if (stepIndex === 1) return (
     <div className="flex flex-col gap-5">
-      <Field label="Street Address" htmlFor="address">
-        <input id="address" name="address" type="text" autoComplete="street-address" value={form.address} onChange={onChange} className="form-input" placeholder="e.g. 123 Main Street" />
+      <Field label="Street Address" required htmlFor="address" error={errors.address}>
+        <input id="address" name="address" type="text" autoComplete="street-address" value={form.address} onChange={onChange} className={`form-input ${errors.address ? "form-input-error" : ""}`} aria-required="true" placeholder="e.g. 123 Main Street" />
       </Field>
       <TwoCol>
         <Field label="City" htmlFor="city">
-          <input id="city" name="city" type="text" autoComplete="address-level2" value={form.city} onChange={onChange} className="form-input" placeholder="e.g. Springfield" />
+          <input id="city" name="city" type="text" autoComplete="address-level2" value={form.city} onChange={onChange} className="form-input" placeholder="e.g. Farmington Hills" />
         </Field>
         <Field label="State" htmlFor="state">
-          <input id="state" name="state" type="text" autoComplete="address-level1" value={form.state} onChange={onChange} className="form-input" placeholder="e.g. IL" />
+          <input id="state" name="state" type="text" autoComplete="address-level1" value={form.state} onChange={onChange} className="form-input" placeholder="e.g. MI" />
         </Field>
       </TwoCol>
       <Field label="ZIP Code" htmlFor="zip">
-        <input id="zip" name="zip" type="text" autoComplete="postal-code" value={form.zip} onChange={onChange} className="form-input" placeholder="e.g. 62701" />
+        <input id="zip" name="zip" type="text" autoComplete="postal-code" value={form.zip} onChange={onChange} className="form-input" placeholder="e.g. 48334" />
       </Field>
     </div>
   );
@@ -1243,7 +1608,7 @@ function StepContent({ stepIndex, form, onChange, errors }: {
           </Field>
           <TwoCol>
             <Field label="Pharmacy Address" htmlFor="pharmacyAddress">
-              <input id="pharmacyAddress" name="pharmacyAddress" type="text" value={form.pharmacyAddress} onChange={onChange} className="form-input" placeholder="e.g. 456 Oak Ave, Chicago" />
+              <input id="pharmacyAddress" name="pharmacyAddress" type="text" value={form.pharmacyAddress} onChange={onChange} className="form-input" placeholder="e.g. 456 Oak Ave, Farmington Hills" />
             </Field>
             <Field label="Pharmacy Phone" htmlFor="pharmacyPhone">
               <input id="pharmacyPhone" name="pharmacyPhone" type="tel" value={form.pharmacyPhone} onChange={onChange} className="form-input" placeholder="e.g. (555) 111-2222" />
@@ -1255,7 +1620,7 @@ function StepContent({ stepIndex, form, onChange, errors }: {
         <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">Today's Visit</p>
         <div className="flex flex-col gap-4">
           <Field label="Reason for Visit" required htmlFor="reasonForVisit" error={errors.reasonForVisit} hint="In a few words, describe why you are visiting today.">
-            <textarea id="reasonForVisit" name="reasonForVisit" rows={3} value={form.reasonForVisit} onChange={onChange} className={`form-input resize-y ${errors.reasonForVisit ? "form-input-error" : ""}`} aria-required="true" placeholder="e.g. Annual checkup, knee pain, follow-up visit" />
+            <textarea id="reasonForVisit" name="reasonForVisit" rows={3} value={form.reasonForVisit} onChange={onChange} className={`form-input resize-y ${errors.reasonForVisit ? "form-input-error" : ""}`} aria-required="true" placeholder="e.g. Annual checkup, follow-up visit" />
           </Field>
           <Field label="Current Medications" htmlFor="currentMedications" hint='List any medications you take regularly. Write "None" if you take no medications.'>
             <textarea id="currentMedications" name="currentMedications" rows={3} value={form.currentMedications} onChange={onChange} className="form-input resize-y" placeholder="e.g. Lisinopril 10mg, Aspirin 81mg" />
@@ -1272,7 +1637,7 @@ function StepContent({ stepIndex, form, onChange, errors }: {
   if (stepIndex === 3) return (
     <div className="flex flex-col gap-6">
 
-      {/* Past Medical History — checkbox grid */}
+      {/* Past Medical History */}
       <div>
         <p className="text-base font-bold text-slate-800 mb-1">Past Medical History</p>
         <p className="text-sm text-slate-500 mb-4">Check all conditions that apply to you personally.</p>
@@ -1284,7 +1649,7 @@ function StepContent({ stepIndex, form, onChange, errors }: {
         </div>
       </div>
 
-      {/* Free-text clinical fields */}
+      {/* Clinical free-text */}
       <div className="border-t border-slate-100 pt-5 flex flex-col gap-4">
         <Field label="Past Surgeries" htmlFor="pastSurgeries" hint='List any surgeries you have had. Include the approximate year if you remember. Write "None" if not applicable.'>
           <textarea id="pastSurgeries" name="pastSurgeries" rows={2} value={form.pastSurgeries} onChange={onChange} className="form-input resize-y" placeholder="e.g. Appendix removed (2015), Knee surgery (2019)" />
@@ -1297,7 +1662,56 @@ function StepContent({ stepIndex, form, onChange, errors }: {
         </Field>
       </div>
 
-      {/* Family Medical History — same checkbox grid */}
+      {/* OB/GYN History */}
+      <div className="border-t border-slate-100 pt-5">
+        <p className="text-base font-bold text-slate-800 mb-1">OB/GYN History</p>
+        <p className="text-sm text-slate-500 mb-4">Have you ever had or do you currently have any of the following?</p>
+        <OBGYNChecklist form={form} onChange={checkboxOnChange} />
+      </div>
+
+      {/* Menstrual History */}
+      <div className="border-t border-slate-100 pt-5">
+        <p className="text-base font-bold text-slate-800 mb-4">Menstrual History</p>
+        <div className="flex flex-col gap-4">
+          <Field label="First day of your last period" htmlFor="lastPeriodDate">
+            <input id="lastPeriodDate" name="lastPeriodDate" type="date" value={form.lastPeriodDate} onChange={onChange} className="form-input" />
+          </Field>
+          <TwoCol>
+            <Field label="How often does your period occur?" htmlFor="periodFrequency">
+              <input id="periodFrequency" name="periodFrequency" type="text" value={form.periodFrequency} onChange={onChange} className="form-input" placeholder="e.g. Every 28 days" />
+            </Field>
+            <Field label="How long does your period last?" htmlFor="periodDuration">
+              <input id="periodDuration" name="periodDuration" type="text" value={form.periodDuration} onChange={onChange} className="form-input" placeholder="e.g. 5 days" />
+            </Field>
+          </TwoCol>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <p id="periodsHeavy-label" className="text-base font-semibold text-slate-700">Are your periods heavy?</p>
+              <YesNo id="periodsHeavy" name="periodsHeavy" value={form.periodsHeavy} onChange={checkboxOnChange} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p id="periodsAffectActivities-label" className="text-base font-semibold text-slate-700">Do your periods affect your daily activities?</p>
+              <YesNo id="periodsAffectActivities" name="periodsAffectActivities" value={form.periodsAffectActivities} onChange={checkboxOnChange} />
+            </div>
+          </div>
+          <TwoCol>
+            <Field label="Number of Pregnancies" htmlFor="numberOfPregnancies">
+              <input id="numberOfPregnancies" name="numberOfPregnancies" type="text" value={form.numberOfPregnancies} onChange={onChange} className="form-input" placeholder="e.g. 2" />
+            </Field>
+            <Field label="Delivery Type" htmlFor="deliveryType">
+              <select id="deliveryType" name="deliveryType" value={form.deliveryType} onChange={onChange} className="form-input">
+                <option value="">— Select —</option>
+                <option value="Vaginal">Vaginal</option>
+                <option value="Cesarean (C-section)">Cesarean (C-section)</option>
+                <option value="Both">Both Vaginal and Cesarean</option>
+                <option value="N/A">Not Applicable</option>
+              </select>
+            </Field>
+          </TwoCol>
+        </div>
+      </div>
+
+      {/* Family Medical History */}
       <div className="border-t border-slate-100 pt-5">
         <p className="text-base font-bold text-slate-800 mb-1">Family Medical History</p>
         <p className="text-sm text-slate-500 mb-4">Check any conditions that run in your immediate family (parents, siblings, children).</p>
@@ -1307,6 +1721,13 @@ function StepContent({ stepIndex, form, onChange, errors }: {
             <input id="familyHistoryOther" name="familyHistoryOther" type="text" value={form.familyHistoryOther} onChange={onChange} className="form-input" placeholder="Any other family conditions not listed above" />
           </Field>
         </div>
+      </div>
+
+      {/* Family / Patient Cancer History */}
+      <div className="border-t border-slate-100 pt-5">
+        <p className="text-base font-bold text-slate-800 mb-1">Family / Patient Cancer History</p>
+        <p className="text-sm text-slate-500 mb-4">List each person who has had cancer, what kind, and age at diagnosis.</p>
+        <CancerHistoryTable entries={form.cancerHistory || []} onChange={onCancerHistoryChange} />
       </div>
 
       {/* Social History */}
@@ -1335,6 +1756,36 @@ function StepContent({ stepIndex, form, onChange, errors }: {
           <Field label="Recreational Substance Use" htmlFor="substanceUse" hint='Write "None" if not applicable. Your answers are confidential.'>
             <textarea id="substanceUse" name="substanceUse" rows={2} value={form.substanceUse} onChange={onChange} className="form-input resize-y" placeholder="e.g. None, Marijuana occasionally" />
           </Field>
+
+          {/* Behavioral Questions */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-4">
+            <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Additional Health Questions</p>
+            <p className="text-xs text-slate-500 -mt-2">Your answers are confidential and help your provider give you the best care.</p>
+
+            <div className="flex flex-col gap-2">
+              <p id="sexuallyActive-label" className="text-base font-semibold text-slate-700">Are you sexually active?</p>
+              <YesNo id="sexuallyActive" name="sexuallyActive" value={form.sexuallyActive} onChange={checkboxOnChange} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p id="stdCheck-label" className="text-base font-semibold text-slate-700">Do you wish to be checked for STDs?</p>
+              <YesNo id="stdCheck" name="stdCheck" value={form.stdCheck} onChange={checkboxOnChange} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p id="domesticAbuse-label" className="text-base font-semibold text-slate-700">Has anyone in your home ever physically or verbally abused you?</p>
+              <YesNo id="domesticAbuse" name="domesticAbuse" value={form.domesticAbuse} onChange={checkboxOnChange} />
+            </div>
+
+            <TwoCol>
+              <Field label="How much caffeine do you drink per day?" htmlFor="caffeinePerDay">
+                <input id="caffeinePerDay" name="caffeinePerDay" type="text" value={form.caffeinePerDay} onChange={onChange} className="form-input" placeholder="e.g. 2 cups of coffee" />
+              </Field>
+              <Field label="How often do you exercise?" htmlFor="exerciseFrequency">
+                <input id="exerciseFrequency" name="exerciseFrequency" type="text" value={form.exerciseFrequency} onChange={onChange} className="form-input" placeholder="e.g. 3x per week, daily walks" />
+              </Field>
+            </TwoCol>
+          </div>
         </div>
       </div>
     </div>
@@ -1398,7 +1849,8 @@ function StepContent({ stepIndex, form, onChange, errors }: {
       </div>
       <div className="border-t border-slate-100 pt-4">
         <label className="flex items-center gap-3 cursor-pointer">
-          <input id="hasSecondaryInsurance" name="hasSecondaryInsurance" type="checkbox" checked={form.hasSecondaryInsurance} onChange={onChange} className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+          <input id="hasSecondaryInsurance" name="hasSecondaryInsurance" type="checkbox" checked={form.hasSecondaryInsurance} onChange={onChange}
+            className="h-5 w-5 rounded border-slate-300" style={{ accentColor: B.brandPink }} />
           <span className="text-base font-semibold text-slate-700">I have a secondary insurance plan</span>
         </label>
         {form.hasSecondaryInsurance && (
@@ -1423,27 +1875,32 @@ function StepContent({ stepIndex, form, onChange, errors }: {
   // Step 6 — Legal & Signature
   if (stepIndex === 6) return (
     <div className="flex flex-col gap-6">
+
+      {/* Notice of Privacy Practices */}
       <div className={`rounded-xl border-2 p-4 ${errors.agreeToPrivacyNotice ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-slate-50"}`}>
-        <p className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Notice of Privacy Practices</p>
+        <p className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Acknowledgment of Receipt of Privacy Notice</p>
         <p className="text-sm text-slate-600 leading-relaxed mb-3">
           This practice is required by law to maintain the privacy of your health information and to provide you with a Notice of Privacy Practices. The Notice describes how your medical information may be used and disclosed, and how you can access this information. By checking the box below, you acknowledge that you have been offered a copy of our Notice of Privacy Practices.
         </p>
         <label className="flex items-start gap-3 cursor-pointer">
-          <input id="agreeToPrivacyNotice" name="agreeToPrivacyNotice" type="checkbox" checked={form.agreeToPrivacyNotice} onChange={onChange} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" aria-required="true" />
+          <input id="agreeToPrivacyNotice" name="agreeToPrivacyNotice" type="checkbox" checked={form.agreeToPrivacyNotice} onChange={onChange}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300" style={{ accentColor: B.brandPink }} aria-required="true" />
           <span className="text-base text-slate-800 leading-relaxed font-medium">
-            I have been offered a copy of this practice's Notice of Privacy Practices and understand how my health information may be used.
+            I acknowledge receipt of this practice's Notice of Privacy Practices and understand how my health information may be used.
           </span>
         </label>
         {errors.agreeToPrivacyNotice && <p id="agreeToPrivacyNotice-error" className="error-msg mt-2">{errors.agreeToPrivacyNotice}</p>}
       </div>
 
+      {/* Assignment of Benefits */}
       <div className={`rounded-xl border-2 p-4 ${errors.agreeToAssignmentOfBenefits ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-slate-50"}`}>
         <p className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Assignment of Benefits</p>
         <p className="text-sm text-slate-600 leading-relaxed mb-3">
           I authorize direct payment of insurance benefits to this practice for services rendered. I understand that I am financially responsible for any amounts not covered by my insurance, including co-pays, deductibles, and non-covered services.
         </p>
         <label className="flex items-start gap-3 cursor-pointer">
-          <input id="agreeToAssignmentOfBenefits" name="agreeToAssignmentOfBenefits" type="checkbox" checked={form.agreeToAssignmentOfBenefits} onChange={onChange} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" aria-required="true" />
+          <input id="agreeToAssignmentOfBenefits" name="agreeToAssignmentOfBenefits" type="checkbox" checked={form.agreeToAssignmentOfBenefits} onChange={onChange}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300" style={{ accentColor: B.brandPink }} aria-required="true" />
           <span className="text-base text-slate-800 leading-relaxed font-medium">
             I authorize this practice to bill my insurance directly and understand I am responsible for any remaining balance.
           </span>
@@ -1451,13 +1908,15 @@ function StepContent({ stepIndex, form, onChange, errors }: {
         {errors.agreeToAssignmentOfBenefits && <p id="agreeToAssignmentOfBenefits-error" className="error-msg mt-2">{errors.agreeToAssignmentOfBenefits}</p>}
       </div>
 
+      {/* Financial Responsibility */}
       <div className={`rounded-xl border-2 p-4 ${errors.agreeToFinancialResponsibility ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-slate-50"}`}>
         <p className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Financial Responsibility</p>
         <p className="text-sm text-slate-600 leading-relaxed mb-3">
           I acknowledge that I am personally responsible for all charges for services rendered at this practice, regardless of insurance coverage. I agree to pay all outstanding balances including co-pays, deductibles, coinsurance, and any services not covered by my insurance plan.
         </p>
         <label className="flex items-start gap-3 cursor-pointer">
-          <input id="agreeToFinancialResponsibility" name="agreeToFinancialResponsibility" type="checkbox" checked={form.agreeToFinancialResponsibility} onChange={onChange} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" aria-required="true" />
+          <input id="agreeToFinancialResponsibility" name="agreeToFinancialResponsibility" type="checkbox" checked={form.agreeToFinancialResponsibility} onChange={onChange}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300" style={{ accentColor: B.brandPink }} aria-required="true" />
           <span className="text-base text-slate-800 leading-relaxed font-medium">
             I understand and accept responsibility for all charges for services provided at this practice.
           </span>
@@ -1465,13 +1924,31 @@ function StepContent({ stepIndex, form, onChange, errors }: {
         {errors.agreeToFinancialResponsibility && <p id="agreeToFinancialResponsibility-error" className="error-msg mt-2">{errors.agreeToFinancialResponsibility}</p>}
       </div>
 
+      {/* Insurance Waiver — Notice of Responsibility */}
+      <div className={`rounded-xl border-2 p-4 ${errors.agreeToInsuranceWaiver ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-slate-50"}`}>
+        <p className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Insurance & Claims — Notice of Responsibility</p>
+        <p className="text-sm text-slate-600 leading-relaxed mb-3">
+          I authorize this practice to submit claims to my insurance carrier on my behalf. I understand that my insurance company may require additional information to process my claim and that I am responsible for any amounts not covered, including but not limited to deductibles, co-payments, coinsurance, and non-covered services. In the event my claim is denied in whole or in part, I acknowledge that I remain fully responsible for all charges incurred. I agree to pay any balance due upon request.
+        </p>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input id="agreeToInsuranceWaiver" name="agreeToInsuranceWaiver" type="checkbox" checked={form.agreeToInsuranceWaiver} onChange={onChange}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300" style={{ accentColor: B.brandPink }} aria-required="true" />
+          <span className="text-base text-slate-800 leading-relaxed font-medium">
+            I authorize claim submission on my behalf and accept full financial responsibility for any denied, uncovered, or outstanding balances.
+          </span>
+        </label>
+        {errors.agreeToInsuranceWaiver && <p id="agreeToInsuranceWaiver-error" className="error-msg mt-2">{errors.agreeToInsuranceWaiver}</p>}
+      </div>
+
+      {/* Patient Certification */}
       <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-4">
         <p className="text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Patient Certification</p>
         <p className="text-sm text-slate-600 leading-relaxed mb-3">
           I certify that the information I have provided in this form is accurate and complete to the best of my knowledge.
         </p>
         <label className="flex items-start gap-3 cursor-pointer">
-          <input id="agreeToTerms" name="agreeToTerms" type="checkbox" checked={form.agreeToTerms} onChange={onChange} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+          <input id="agreeToTerms" name="agreeToTerms" type="checkbox" checked={form.agreeToTerms} onChange={onChange}
+            className="mt-0.5 h-5 w-5 rounded border-slate-300" style={{ accentColor: B.brandPink }} />
           <span className="text-base text-slate-800 leading-relaxed font-medium">
             I certify that all information I have provided is accurate and complete.
           </span>
@@ -1498,10 +1975,12 @@ function SectionSummary({ stepIndex, form }: { stepIndex: number; form: FormData
     if (form.reasonForVisit) parts.push(form.reasonForVisit.length > 50 ? form.reasonForVisit.slice(0, 50) + "…" : form.reasonForVisit);
   } else if (stepIndex === 3) {
     const pastCount = CONDITIONS.filter(c => form[pastKey(c.key) as keyof FormData] as boolean).length;
+    const obgynCount = OBGYN_CONDITIONS.filter(c => form[obgynKey(c.key) as keyof FormData] as boolean).length;
     const famCount = CONDITIONS.filter(c => form[famKey(c.key) as keyof FormData] as boolean).length;
     if (pastCount > 0) parts.push(`${pastCount} past condition${pastCount !== 1 ? "s" : ""}`);
+    if (obgynCount > 0) parts.push(`${obgynCount} OB/GYN condition${obgynCount !== 1 ? "s" : ""}`);
     if (famCount > 0) parts.push(`${famCount} family condition${famCount !== 1 ? "s" : ""}`);
-    if (!pastCount && !famCount) parts.push("No conditions reported");
+    if (!pastCount && !obgynCount && !famCount) parts.push("No conditions reported");
   } else if (stepIndex === 4) {
     if (form.emergencyContactName) parts.push(form.emergencyContactName);
     if (form.emergencyContactRelationship) parts.push(form.emergencyContactRelationship);
@@ -1533,7 +2012,7 @@ function Field({ label, required, htmlFor, hint, error, children }: {
     <div className="flex flex-col gap-1.5">
       <label htmlFor={htmlFor} className="text-base font-semibold text-slate-700">
         {label}
-        {required && <span className="text-rose-500 ml-1" aria-hidden="true">*</span>}
+        {required && <span className="text-rose-600 ml-1" aria-hidden="true">*</span>}
       </label>
       {hint && <p className="text-sm text-slate-500 -mt-0.5">{hint}</p>}
       {children}
@@ -1566,9 +2045,19 @@ function PrintSection({ title, children }: { title: string; children: React.Reac
   );
 }
 
+function PrintYesNo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="print-yesno-row">
+      <span className="print-yesno-label">{label}</span>
+      <span className="print-yesno-answer">{value || "—"}</span>
+    </div>
+  );
+}
+
 function PrintView({ form }: { form: FormData }) {
   const pastSelected = CONDITIONS.filter(c => form[pastKey(c.key) as keyof FormData] as boolean).map(c => c.label);
   const famSelected = CONDITIONS.filter(c => form[famKey(c.key) as keyof FormData] as boolean).map(c => c.label);
+  const obgynSelected = OBGYN_CONDITIONS.filter(c => form[obgynKey(c.key) as keyof FormData] as boolean).map(c => c.label);
 
   return (
     <div className="print-document">
@@ -1582,6 +2071,13 @@ function PrintView({ form }: { form: FormData }) {
       )}
       <div className="print-doc-header">
         <h1 className="print-doc-title">Patient Intake Form</h1>
+        <p className="print-doc-practice">{PRACTICE_NAME}</p>
+        <p className="print-doc-practice" style={{ fontStyle: "normal", fontSize: "8pt", color: "#444" }}>
+          {PRACTICE_ADDRESS.street} · {PRACTICE_ADDRESS.city}, {PRACTICE_ADDRESS.state} {PRACTICE_ADDRESS.zip} · Ph: {PRACTICE_ADDRESS.phone} · Fax: {PRACTICE_ADDRESS.fax}
+        </p>
+        <p className="print-doc-practice" style={{ fontStyle: "normal", fontSize: "8pt", color: "#444" }}>
+          {PRACTICE_PHYSICIANS.join(" · ")}
+        </p>
         <p className="print-doc-subtitle">Date printed: {new Date().toLocaleDateString()}</p>
       </div>
 
@@ -1654,6 +2150,37 @@ function PrintView({ form }: { form: FormData }) {
         <PrintRow label="Additional Chronic Conditions" value={form.chronicConditions} />
       </PrintSection>
 
+      <PrintSection title="OB/GYN History">
+        <p className="print-subtitle">Have you ever had or do you currently have any of the following?</p>
+        <div className="print-checklist">
+          {OBGYN_CONDITIONS.map(({ label, key }) => {
+            const checked = form[obgynKey(key) as keyof FormData] as boolean;
+            return (
+              <div key={key} className="print-check-item">
+                <span className="print-checkbox">{checked ? "☑" : "☐"}</span>
+                <span>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </PrintSection>
+
+      <PrintSection title="Menstrual History">
+        <div className="print-two-col">
+          <PrintRow label="First Day of Last Period" value={formatDate(form.lastPeriodDate)} />
+          <PrintRow label="Period Frequency" value={form.periodFrequency} />
+        </div>
+        <div className="print-two-col">
+          <PrintRow label="Period Duration" value={form.periodDuration} />
+          <PrintRow label="Number of Pregnancies" value={form.numberOfPregnancies} />
+        </div>
+        <div className="print-two-col">
+          <PrintRow label="Delivery Type" value={form.deliveryType} />
+        </div>
+        <PrintYesNo label="Are your periods heavy?" value={form.periodsHeavy} />
+        <PrintYesNo label="Do your periods affect your daily activities?" value={form.periodsAffectActivities} />
+      </PrintSection>
+
       <PrintSection title="Clinical History — Family Medical History">
         <p className="print-subtitle">Immediate family (parents, siblings, children)</p>
         <div className="print-checklist">
@@ -1673,12 +2200,42 @@ function PrintView({ form }: { form: FormData }) {
         </div>
       </PrintSection>
 
+      {(form.cancerHistory || []).length > 0 && (
+        <PrintSection title="Family / Patient Cancer History">
+          <table className="print-cancer-table">
+            <thead>
+              <tr>
+                <th>Relation</th>
+                <th>Type of Cancer</th>
+                <th>Age at Diagnosis</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(form.cancerHistory || []).map(entry => (
+                <tr key={entry.id}>
+                  <td>{entry.relation}</td>
+                  <td>{entry.cancerType}</td>
+                  <td>{entry.ageAtDiagnosis}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </PrintSection>
+      )}
+
       <PrintSection title="Social History">
         <div className="print-two-col">
           <PrintRow label="Tobacco Use" value={form.tobaccoUse} />
           <PrintRow label="Alcohol Use" value={form.alcoholUse} />
         </div>
         <PrintRow label="Substance Use" value={form.substanceUse} />
+        <PrintYesNo label="Are you sexually active?" value={form.sexuallyActive} />
+        <PrintYesNo label="Do you wish to be checked for STDs?" value={form.stdCheck} />
+        <PrintYesNo label="Has anyone in your home ever physically or verbally abused you?" value={form.domesticAbuse} />
+        <div className="print-two-col">
+          <PrintRow label="Caffeine Per Day" value={form.caffeinePerDay} />
+          <PrintRow label="Exercise Frequency" value={form.exerciseFrequency} />
+        </div>
       </PrintSection>
 
       <PrintSection title="Emergency Contact">
@@ -1716,7 +2273,7 @@ function PrintView({ form }: { form: FormData }) {
       <PrintSection title="Legal Authorizations & Signature">
         <div className="print-agreement">
           <span className="print-checkbox">{form.agreeToPrivacyNotice ? "☑" : "☐"}</span>
-          <span><strong>Notice of Privacy Practices:</strong> I have been offered a copy of this practice's Notice of Privacy Practices.</span>
+          <span><strong>Acknowledgment of Receipt of Privacy Notice:</strong> I acknowledge receipt of this practice's Notice of Privacy Practices and understand how my health information may be used.</span>
         </div>
         <div className="print-agreement">
           <span className="print-checkbox">{form.agreeToAssignmentOfBenefits ? "☑" : "☐"}</span>
@@ -1725,6 +2282,10 @@ function PrintView({ form }: { form: FormData }) {
         <div className="print-agreement">
           <span className="print-checkbox">{form.agreeToFinancialResponsibility ? "☑" : "☐"}</span>
           <span><strong>Financial Responsibility:</strong> I acknowledge responsibility for all charges for services rendered.</span>
+        </div>
+        <div className="print-agreement">
+          <span className="print-checkbox">{form.agreeToInsuranceWaiver ? "☑" : "☐"}</span>
+          <span><strong>Insurance & Claims — Notice of Responsibility:</strong> I authorize claim submission on my behalf and accept full financial responsibility for any denied, uncovered, or outstanding balances.</span>
         </div>
         <div className="print-agreement">
           <span className="print-checkbox">{form.agreeToTerms ? "☑" : "☐"}</span>
