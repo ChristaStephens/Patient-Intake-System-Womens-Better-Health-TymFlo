@@ -1,5 +1,5 @@
 export const PRACTICE_NAME = "Better Women's Care";
-export const PRACTICE_EMAIL = "office@betterwomenscare.com";
+export const PRACTICE_EMAIL = "bwc@betterwomenscare.com";
 
 export const PRACTICE_ADDRESS = {
   street: "30445 Northwestern Highway, Suite 142",
