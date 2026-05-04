@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, Lock, Monitor, HardDrive, AlertTriangle, Send, Phone } from "lucide-react";
 import Footer from "@/components/footer";
-import { PRACTICE_NAME, TYMFLO } from "@/lib/config";
+import { PRACTICE_NAME, PRACTICE_EMAIL, TYMFLO } from "@/lib/config";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -117,7 +117,8 @@ export default function PrivacyNotice() {
               color="slate"
             >
               <p>
-                If you have questions about your privacy, your intake form, or your appointment, please contact <strong>{PRACTICE_NAME}</strong> directly.
+                If you have questions about your privacy, your intake form, or your appointment, please contact <strong>{PRACTICE_NAME}</strong> directly at{" "}
+                <a href={`mailto:${PRACTICE_EMAIL}`} className="text-teal-600 hover:underline">{PRACTICE_EMAIL}</a>.
               </p>
               <p>
                 TymFlo provides the intake system technology but is not involved in the clinical relationship between you and your provider. We cannot answer questions about your care or your specific intake information.
