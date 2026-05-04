@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import Footer from "@/components/footer";
-import { PRACTICE_NAME, TYMFLO } from "@/lib/config";
+import { PRACTICE_NAME, PRACTICE_EMAIL, TYMFLO } from "@/lib/config";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -111,7 +111,9 @@ export default function TermsOfUse() {
             <Section title="7. Contact">
               <p>
                 If you have questions about this intake form or your appointment, please contact{" "}
-                <strong>{PRACTICE_NAME}</strong> directly. Do not contact TymFlo with questions about your medical care or intake information.
+                <strong>{PRACTICE_NAME}</strong> directly at{" "}
+                <a href={`mailto:${PRACTICE_EMAIL}`} className="text-teal-600 hover:underline">{PRACTICE_EMAIL}</a>.
+                Do not contact TymFlo with questions about your medical care or intake information.
               </p>
               <p>
                 For licensing or business inquiries regarding TymFlo, you may reach us at:
