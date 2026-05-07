@@ -1049,6 +1049,12 @@ export default function IntakeForm() {
               <Mail className="w-5 h-5" aria-hidden="true" />
               Email to {PRACTICE_EMAIL}
             </a>
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-1">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-amber-800 leading-relaxed">
+                <strong>Don't forget to attach your form to the email.</strong> Open your email app, attach the downloaded PDF or CSV file, then send it to {PRACTICE_EMAIL}.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setShowEmailDialog(false)}
