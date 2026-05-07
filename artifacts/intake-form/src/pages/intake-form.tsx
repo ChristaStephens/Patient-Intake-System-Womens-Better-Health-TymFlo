@@ -920,7 +920,17 @@ export default function IntakeForm() {
                 Export for EHR (CSV)
               </button>
             </div>
-            <p className="text-xs mt-3 text-center" style={{ color: B.blush }}>
+            <p className="text-sm mt-3 text-center font-medium" style={{ color: B.blush }}>
+              After downloading your completed form, please email it as an attachment to{" "}
+              <a
+                href={`mailto:${PRACTICE_EMAIL}`}
+                className="underline hover:opacity-80"
+                style={{ color: "#ffffff" }}
+              >
+                {PRACTICE_EMAIL}
+              </a>.
+            </p>
+            <p className="text-xs mt-2 text-center" style={{ color: B.blush }}>
               The CSV file can be imported into most electronic health record systems.
             </p>
             <p className="text-xs mt-4 pt-4 text-center" style={{ borderTop: "1px solid rgba(255,255,255,0.1)", color: "rgba(240,192,212,0.7)" }}>
@@ -1039,12 +1049,6 @@ export default function IntakeForm() {
               <Mail className="w-5 h-5" aria-hidden="true" />
               Email to {PRACTICE_EMAIL}
             </a>
-            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Standard email is not encrypted. If {PRACTICE_NAME} offers a secure patient portal, consider submitting your form there instead for added privacy.
-              </p>
-            </div>
             <button
               type="button"
               onClick={() => setShowEmailDialog(false)}
