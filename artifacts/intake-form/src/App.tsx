@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import IntakeForm from "@/pages/intake-form";
 import TermsOfUse from "@/pages/terms-of-use";
 import PrivacyNotice from "@/pages/privacy-notice";
+import BlankForm from "@/pages/blank-form";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -11,6 +12,7 @@ function Router() {
       <Route path="/" component={IntakeForm} />
       <Route path="/terms" component={TermsOfUse} />
       <Route path="/privacy" component={PrivacyNotice} />
+      <Route path="/blank-form" component={BlankForm} />
       <Route component={NotFound} />
     </Switch>
   );
