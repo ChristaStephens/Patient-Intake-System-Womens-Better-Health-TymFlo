@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { FileDown } from "lucide-react";
 import { PRACTICE_NAME } from "@/lib/config";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -19,6 +20,24 @@ export default function Footer() {
         <p className="text-xs font-medium text-slate-500 tracking-wide">
           Digital Intake System by TymFlo
         </p>
+
+        {/* Blank form download */}
+        <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 flex flex-col items-center gap-2 my-1">
+          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">For Office Staff</p>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Need to send a form to a patient by email? Download a blank printable PDF.
+          </p>
+          <Link
+            href="/blank-form"
+            className="flex items-center gap-1.5 mt-1 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1"
+            style={{ backgroundColor: "#6b1e3d" }}
+            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = "#3d0e22")}
+            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = "#6b1e3d")}
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            Download Blank Form (PDF)
+          </Link>
+        </div>
 
         {/* License */}
         <p className="text-xs text-slate-400 leading-relaxed max-w-md">
