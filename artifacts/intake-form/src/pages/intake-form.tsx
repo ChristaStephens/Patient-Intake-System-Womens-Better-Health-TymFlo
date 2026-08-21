@@ -1,4 +1,1414 @@
-   <button
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  Info,
+  X,
+  Download,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  User,
+  MapPin,
+  Stethoscope,
+  ClipboardList,
+  Shield,
+  PenLine,
+  AlertCircle,
+  FileDown,
+  Lock,
+  Mail,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import Footer, { PrintFooter } from "@/components/footer";
+import { PRACTICE_NAME, PRACTICE_EMAIL, IS_DEMO, PRACTICE_ADDRESS, PRACTICE_PHYSICIANS } from "@/lib/config";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+const STORAGE_KEY = "intake_form_data";
+const STEP_KEY = "intake_form_step";
+
+/* ── Brand color tokens (mirrors CSS variables) ─────────────── */
+const B = {
+  deepBerry: "#3d0e22",
+  darkRose: "#6b1e3d",
+  brandPink: "#9b3060",
+  lightPink: "#c96090",
+  blush: "#f0c0d4",
+  blushLight: "#faf0f4",
+} as const;
+
+/* ── Medical Condition List ─────────────────────────────────── */
+const CONDITIONS: { label: string; key: string }[] = [
+  { label: "Allergies", key: "allergies" },
+  { label: "Anemia", key: "anemia" },
+  { label: "Anxiety Disorder", key: "anxietyDisorder" },
+  { label: "Arthritis", key: "arthritis" },
+  { label: "Asthma", key: "asthma" },
+  { label: "AIDS / HIV", key: "aidsHiv" },
+  { label: "Bleeding Disorder", key: "bleedingDisorder" },
+  { label: "Blood Transfusion", key: "bloodTransfusion" },
+  { label: "Cancer", key: "cancer" },
+  { label: "Crohn's Disease", key: "crohnsDisease" },
+  { label: "Diabetes", key: "diabetes" },
+  { label: "Depression", key: "depression" },
+  { label: "DVT", key: "dvt" },
+  { label: "GERD", key: "gerd" },
+  { label: "Glaucoma", key: "glaucoma" },
+  { label: "Heart Disease", key: "heartDisease" },
+  { label: "Heart Problems", key: "heartProblems" },
+  { label: "Hepatitis A, B, or C", key: "hepatitis" },
+  { label: "High Blood Pressure", key: "highBloodPressure" },
+  { label: "High Cholesterol", key: "highCholesterol" },
+  { label: "IBS", key: "ibs" },
+  { label: "Kidney Disorder", key: "kidneyDisorder" },
+  { label: "Liver Disorder", key: "liverDisorder" },
+  { label: "Lung Disease", key: "lungDisease" },
+  { label: "Migraines", key: "migraines" },
+  { label: "Osteoporosis", key: "osteoporosis" },
+  { label: "Phlebitis", key: "phlebitis" },
+  { label: "Skin Disorder", key: "skinDisorder" },
+  { label: "Stomach Ulcer", key: "stomachUlcer" },
+  { label: "Stroke", key: "stroke" },
+  { label: "Thyroid Disease", key: "thyroidDisease" },
+  { label: "Tuberculosis", key: "tuberculosis" },
+  { label: "Venereal Disease", key: "venerealDisorder" },
+  { label: "Seizure", key: "seizure" },
+  { label: "Sickle Cell", key: "sickleCell" },
+];
+
+/* ── OB/GYN Condition List ──────────────────────────────────── */
+const OBGYN_CONDITIONS: { label: string; key: string }[] = [
+  { label: "Abnormal Vaginal Bleeding", key: "abnormalVaginalBleeding" },
+  { label: "Abnormal Pap Smear", key: "abnormalPapSmear" },
+  { label: "Bleeding Between Periods", key: "bleedingBetweenPeriods" },
+  { label: "Breast Lump", key: "breastLump" },
+  { label: "Breast Cancer", key: "breastCancer" },
+  { label: "Breast Surgery", key: "breastSurgery" },
+  { label: "Cervical Cancer", key: "cervicalCancer" },
+  { label: "Chlamydia", key: "chlamydia" },
+  { label: "Colposcopy", key: "colposcopy" },
+  { label: "Chiral Surgery", key: "chiralSurgery" },
+  { label: "Endometriosis", key: "endometriosis" },
+  { label: "Extreme Menstrual Pain", key: "extremeMenstrualPain" },
+  { label: "Fibroids", key: "fibroids" },
+  { label: "Genital Warts", key: "genitalWarts" },
+  { label: "Gonorrhea", key: "gonorrhea" },
+  { label: "Herpes", key: "herpes" },
+  { label: "Hot Flashes", key: "hotFlashes" },
+  { label: "HPV", key: "hpv" },
+  { label: "Infertility", key: "infertility" },
+  { label: "Irregular Periods", key: "irregularPeriods" },
+  { label: "Nipple Discharge", key: "nippleDischarge" },
+  { label: "Ovarian Cysts", key: "ovarianCysts" },
+  { label: "Ovarian Cancer", key: "ovarianCancer" },
+  { label: "Painful Intercourse", key: "painfulIntercourse" },
+  { label: "Pelvic Inflammatory Disease", key: "pelvicInflammatoryDisease" },
+  { label: "Pelvic Floor Issues", key: "pelvicFloorIssues" },
+  { label: "Uterine Cancer", key: "uterineCancer" },
+  { label: "Urinary Incontinence", key: "urinaryIncontinence" },
+  { label: "Yeast Infection", key: "yeastInfection" },
+  { label: "Hormone Replacement Therapy", key: "hormoneReplacementTherapy" },
+];
+
+function capFirst(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function pastKey(key: string): string { return `past${capFirst(key)}`; }
+function famKey(key: string): string { return `family${capFirst(key)}`; }
+function obgynKey(key: string): string { return `obgyn${capFirst(key)}`; }
+
+/* ── Cancer History Entry ───────────────────────────────────── */
+interface CancerEntry {
+  id: string;
+  relation: string;
+  cancerType: string;
+  ageAtDiagnosis: string;
+}
+
+interface MedicationEntry {
+  id: string;
+  name: string;
+  dosage: string;
+}
+
+const MARITAL_STATUS_OPTIONS = [
+  "Married",
+  "Single",
+  "Widowed",
+  "Divorced",
+  "Separated",
+  "Domestic Partnership",
+  "Other",
+  "Prefer not to say",
+] as const;
+
+/* ── FormData ───────────────────────────────────────────────── */
+interface FormData {
+  // Personal
+  firstName: string; lastName: string; preferredName: string;
+  dateOfBirth: string; email: string; phone: string;
+  maritalStatus: string;
+  sex: string; genderIdentity: string; pronouns: string;
+  race: string; ethnicity: string; preferredLanguage: string;
+  // Address
+  address: string; city: string; state: string; zip: string;
+  // Provider & Visit
+  primaryCarePhysician: string; primaryCarePhysicianPhone: string;
+  pharmacyName: string; pharmacyAddress: string; pharmacyPhone: string;
+  reasonForVisit: string; currentMedications: MedicationEntry[]; allergies: string;
+  // Past Medical History — checkboxes
+  pastAllergies: boolean; pastAnemia: boolean; pastAnxietyDisorder: boolean;
+  pastArthritis: boolean; pastAsthma: boolean; pastAidsHiv: boolean;
+  pastBleedingDisorder: boolean; pastBloodTransfusion: boolean;
+  pastCancer: boolean; pastCrohnsDisease: boolean; pastDiabetes: boolean;
+  pastDepression: boolean; pastDvt: boolean; pastGerd: boolean;
+  pastGlaucoma: boolean; pastHeartDisease: boolean; pastHeartProblems: boolean;
+  pastHepatitis: boolean; pastHighBloodPressure: boolean; pastHighCholesterol: boolean;
+  pastIbs: boolean; pastKidneyDisorder: boolean; pastLiverDisorder: boolean;
+  pastLungDisease: boolean; pastMigraines: boolean; pastOsteoporosis: boolean;
+  pastPhlebitis: boolean; pastSkinDisorder: boolean; pastStomachUlcer: boolean;
+  pastStroke: boolean; pastThyroidDisease: boolean; pastTuberculosis: boolean;
+  pastVenerealDisorder: boolean; pastSeizure: boolean; pastSickleCell: boolean;
+  pastMedicalOther: string;
+  // Clinical free-text
+  pastSurgeries: string; pastHospitalizations: string; chronicConditions: string;
+  // Family Medical History — checkboxes (same conditions)
+  familyAllergies: boolean; familyAnemia: boolean; familyAnxietyDisorder: boolean;
+  familyArthritis: boolean; familyAsthma: boolean; familyAidsHiv: boolean;
+  familyBleedingDisorder: boolean; familyBloodTransfusion: boolean;
+  familyCancer: boolean; familyCrohnsDisease: boolean; familyDiabetes: boolean;
+  familyDepression: boolean; familyDvt: boolean; familyGerd: boolean;
+  familyGlaucoma: boolean; familyHeartDisease: boolean; familyHeartProblems: boolean;
+  familyHepatitis: boolean; familyHighBloodPressure: boolean; familyHighCholesterol: boolean;
+  familyIbs: boolean; familyKidneyDisorder: boolean; familyLiverDisorder: boolean;
+  familyLungDisease: boolean; familyMigraines: boolean; familyOsteoporosis: boolean;
+  familyPhlebitis: boolean; familySkinDisorder: boolean; familyStomachUlcer: boolean;
+  familyStroke: boolean; familyThyroidDisease: boolean; familyTuberculosis: boolean;
+  familyVenerealDisorder: boolean; familySeizure: boolean; familySickleCell: boolean;
+  familyHistoryOther: string;
+  // OB/GYN History — checkboxes
+  obgynAbnormalVaginalBleeding: boolean; obgynAbnormalPapSmear: boolean;
+  obgynBleedingBetweenPeriods: boolean; obgynBreastLump: boolean;
+  obgynBreastCancer: boolean; obgynBreastSurgery: boolean;
+  obgynCervicalCancer: boolean; obgynChlamydia: boolean;
+  obgynColposcopy: boolean; obgynChiralSurgery: boolean;
+  obgynEndometriosis: boolean; obgynExtremeMenstrualPain: boolean;
+  obgynFibroids: boolean; obgynGenitalWarts: boolean;
+  obgynGonorrhea: boolean; obgynHerpes: boolean;
+  obgynHotFlashes: boolean; obgynHpv: boolean;
+  obgynInfertility: boolean; obgynIrregularPeriods: boolean;
+  obgynNippleDischarge: boolean; obgynOvarianCysts: boolean;
+  obgynOvarianCancer: boolean; obgynPainfulIntercourse: boolean;
+  obgynPelvicInflammatoryDisease: boolean; obgynPelvicFloorIssues: boolean;
+  obgynUterineCancer: boolean; obgynUrinaryIncontinence: boolean;
+  obgynYeastInfection: boolean; obgynHormoneReplacementTherapy: boolean;
+  // Menstrual & Reproductive History
+  lastPeriodDate: string;
+  periodFrequency: string;
+  periodDuration: string;
+  periodsHeavy: string;
+  periodsAffectActivities: string;
+  numberOfPregnancies: string;
+  numberOfMiscarriages: string;
+  numberOfAbortions: string;
+  deliveryType: string;
+  lastPapSmear: string; lastMammogram: string; lastColposcopy: string; lastBoneDensity: string;
+  // Social / Behavioral History
+  tobaccoUse: string; alcoholUse: string; substanceUse: string;
+  sexuallyActive: string;
+  stdCheck: string;
+  domesticAbuse: string;
+  caffeinePerDay: string;
+  exerciseFrequency: string;
+  // Family / Patient Cancer History
+  cancerHistory: CancerEntry[];
+  // Emergency
+  emergencyContactName: string; emergencyContactPhone: string; emergencyContactRelationship: string;
+  // Insurance
+  relationshipToInsured: string; primaryInsuredName: string; primaryInsuredDOB: string;
+  insuranceProvider: string; policyNumber: string; groupNumber: string;
+  hasSecondaryInsurance: boolean;
+  secondaryInsuranceProvider: string; secondaryPolicyNumber: string; secondaryGroupNumber: string;
+  // Legal
+  agreeToPrivacyNotice: boolean; agreeToAssignmentOfBenefits: boolean;
+  agreeToFinancialResponsibility: boolean; agreeToInsuranceWaiver: boolean;
+  agreeToTerms: boolean;
+  signatureText: string; signatureDate: string;
+  signatureData: string; signatureTimestamp: string;
+}
+
+const BOOL_FALSE_CONDITIONS: Record<string, boolean> = {};
+CONDITIONS.forEach(({ key }) => {
+  BOOL_FALSE_CONDITIONS[pastKey(key)] = false;
+  BOOL_FALSE_CONDITIONS[famKey(key)] = false;
+});
+OBGYN_CONDITIONS.forEach(({ key }) => {
+  BOOL_FALSE_CONDITIONS[obgynKey(key)] = false;
+});
+
+const INITIAL_FORM: FormData = {
+  firstName: "", lastName: "", preferredName: "",
+  dateOfBirth: "", email: "", phone: "",
+  maritalStatus: "",
+  sex: "", genderIdentity: "", pronouns: "",
+  race: "", ethnicity: "", preferredLanguage: "",
+  address: "", city: "", state: "", zip: "",
+  primaryCarePhysician: "", primaryCarePhysicianPhone: "",
+  pharmacyName: "", pharmacyAddress: "", pharmacyPhone: "",
+  reasonForVisit: "", currentMedications: [{ id: "initial-medication", name: "", dosage: "" }], allergies: "",
+  // past medical checkboxes
+  pastAllergies: false, pastAnemia: false, pastAnxietyDisorder: false,
+  pastArthritis: false, pastAsthma: false, pastAidsHiv: false,
+  pastBleedingDisorder: false, pastBloodTransfusion: false,
+  pastCancer: false, pastCrohnsDisease: false, pastDiabetes: false,
+  pastDepression: false, pastDvt: false, pastGerd: false,
+  pastGlaucoma: false, pastHeartDisease: false, pastHeartProblems: false,
+  pastHepatitis: false, pastHighBloodPressure: false, pastHighCholesterol: false,
+  pastIbs: false, pastKidneyDisorder: false, pastLiverDisorder: false,
+  pastLungDisease: false, pastMigraines: false, pastOsteoporosis: false,
+  pastPhlebitis: false, pastSkinDisorder: false, pastStomachUlcer: false,
+  pastStroke: false, pastThyroidDisease: false, pastTuberculosis: false,
+  pastVenerealDisorder: false, pastSeizure: false, pastSickleCell: false,
+  pastMedicalOther: "",
+  pastSurgeries: "", pastHospitalizations: "", chronicConditions: "",
+  // family medical checkboxes
+  familyAllergies: false, familyAnemia: false, familyAnxietyDisorder: false,
+  familyArthritis: false, familyAsthma: false, familyAidsHiv: false,
+  familyBleedingDisorder: false, familyBloodTransfusion: false,
+  familyCancer: false, familyCrohnsDisease: false, familyDiabetes: false,
+  familyDepression: false, familyDvt: false, familyGerd: false,
+  familyGlaucoma: false, familyHeartDisease: false, familyHeartProblems: false,
+  familyHepatitis: false, familyHighBloodPressure: false, familyHighCholesterol: false,
+  familyIbs: false, familyKidneyDisorder: false, familyLiverDisorder: false,
+  familyLungDisease: false, familyMigraines: false, familyOsteoporosis: false,
+  familyPhlebitis: false, familySkinDisorder: false, familyStomachUlcer: false,
+  familyStroke: false, familyThyroidDisease: false, familyTuberculosis: false,
+  familyVenerealDisorder: false, familySeizure: false, familySickleCell: false,
+  familyHistoryOther: "",
+  // OB/GYN checkboxes
+  obgynAbnormalVaginalBleeding: false, obgynAbnormalPapSmear: false,
+  obgynBleedingBetweenPeriods: false, obgynBreastLump: false,
+  obgynBreastCancer: false, obgynBreastSurgery: false,
+  obgynCervicalCancer: false, obgynChlamydia: false,
+  obgynColposcopy: false, obgynChiralSurgery: false,
+  obgynEndometriosis: false, obgynExtremeMenstrualPain: false,
+  obgynFibroids: false, obgynGenitalWarts: false,
+  obgynGonorrhea: false, obgynHerpes: false,
+  obgynHotFlashes: false, obgynHpv: false,
+  obgynInfertility: false, obgynIrregularPeriods: false,
+  obgynNippleDischarge: false, obgynOvarianCysts: false,
+  obgynOvarianCancer: false, obgynPainfulIntercourse: false,
+  obgynPelvicInflammatoryDisease: false, obgynPelvicFloorIssues: false,
+  obgynUterineCancer: false, obgynUrinaryIncontinence: false,
+  obgynYeastInfection: false, obgynHormoneReplacementTherapy: false,
+  // Menstrual & Reproductive
+  lastPeriodDate: "", periodFrequency: "", periodDuration: "",
+  periodsHeavy: "", periodsAffectActivities: "",
+  numberOfPregnancies: "", numberOfMiscarriages: "", numberOfAbortions: "", deliveryType: "",
+  lastPapSmear: "", lastMammogram: "", lastColposcopy: "", lastBoneDensity: "",
+  // Social
+  tobaccoUse: "", alcoholUse: "", substanceUse: "",
+  sexuallyActive: "", stdCheck: "", domesticAbuse: "",
+  caffeinePerDay: "", exerciseFrequency: "",
+  // Cancer history
+  cancerHistory: [],
+  // Emergency
+  emergencyContactName: "", emergencyContactPhone: "", emergencyContactRelationship: "",
+  // Insurance
+  relationshipToInsured: "self", primaryInsuredName: "", primaryInsuredDOB: "",
+  insuranceProvider: "", policyNumber: "", groupNumber: "",
+  hasSecondaryInsurance: false,
+  secondaryInsuranceProvider: "", secondaryPolicyNumber: "", secondaryGroupNumber: "",
+  // Legal
+  agreeToPrivacyNotice: false, agreeToAssignmentOfBenefits: false,
+  agreeToFinancialResponsibility: false, agreeToInsuranceWaiver: false,
+  agreeToTerms: false,
+  signatureText: "", signatureDate: "",
+  signatureData: "", signatureTimestamp: "",
+};
+
+/* ── Steps ──────────────────────────────────────────────────── */
+const STEPS = [
+  { id: "personal", title: "Personal Information", Icon: User },
+  { id: "address", title: "Address & Emergency Contact", Icon: MapPin },
+  { id: "provider", title: "Provider & Visit", Icon: Stethoscope },
+  { id: "history", title: "Clinical History", Icon: ClipboardList },
+  { id: "insurance", title: "Insurance", Icon: Shield },
+  { id: "legal", title: "Legal & Signature", Icon: PenLine },
+] as const;
+
+type FieldErrors = Record<string, string>;
+
+/* ── Storage helpers ────────────────────────────────────────── */
+function serializeForm(data: FormData): string { return JSON.stringify(data); }
+
+function normalizeMedicationEntries(value: unknown): MedicationEntry[] {
+  if (Array.isArray(value)) {
+    const entries = value
+      .filter((entry): entry is Partial<MedicationEntry> => typeof entry === "object" && entry !== null)
+      .map((entry, index) => ({
+        id: typeof entry.id === "string" && entry.id ? entry.id : `saved-medication-${index}`,
+        name: typeof entry.name === "string" ? entry.name : "",
+        dosage: typeof entry.dosage === "string" ? entry.dosage : "",
+      }));
+    return entries.length ? entries : [{ id: "initial-medication", name: "", dosage: "" }];
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [{ id: "legacy-medication", name: value, dosage: "" }];
+  }
+  return [{ id: "initial-medication", name: "", dosage: "" }];
+}
+
+function deserializeForm(raw: string): FormData | null {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) {
+      const saved = parsed as Record<string, unknown>;
+      return {
+        ...INITIAL_FORM,
+        ...saved,
+        currentMedications: normalizeMedicationEntries(saved.currentMedications),
+        obgynColposcopy: Boolean(saved.obgynColposcopy ?? saved.obgynColonoscopy),
+      } as FormData;
+    }
+    return null;
+  } catch { return null; }
+}
+
+function loadFromStorage(storage: Storage): FormData | null {
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
+    return raw ? deserializeForm(raw) : null;
+  } catch { return null; }
+}
+
+function saveToStorage(storage: Storage, data: FormData): void {
+  storage.setItem(STORAGE_KEY, serializeForm(data));
+}
+
+function clearFromStorage(storage: Storage): void {
+  storage.removeItem(STORAGE_KEY);
+  storage.removeItem(STEP_KEY);
+}
+
+function formatDate(val: string) {
+  if (!val) return "";
+  const [y, m, d] = val.split("-");
+  if (!y || !m || !d) return val;
+  return `${m}/${d}/${y}`;
+}
+
+function formatMedicationEntries(entries: MedicationEntry[]): string {
+  return entries
+    .filter(entry => entry.name.trim() || entry.dosage.trim())
+    .map(entry => entry.dosage.trim() ? `${entry.name.trim()} — ${entry.dosage.trim()}` : entry.name.trim())
+    .join("; ");
+}
+
+/* ── Validation ─────────────────────────────────────────────── */
+function validateStep(stepIndex: number, form: FormData): FieldErrors {
+  const errors: FieldErrors = {};
+  if (stepIndex === 0) {
+    if (!form.firstName.trim()) errors.firstName = "First name is required.";
+    if (!form.lastName.trim()) errors.lastName = "Last name is required.";
+    if (!form.dateOfBirth) errors.dateOfBirth = "Date of birth is required.";
+    if (!form.email.trim()) errors.email = "Email address is required.";
+    if (!form.phone.trim()) errors.phone = "Phone number is required.";
+  }
+  if (stepIndex === 1) {
+    if (!form.address.trim()) errors.address = "Street address is required.";
+  }
+  if (stepIndex === 2) {
+    if (!form.reasonForVisit.trim()) errors.reasonForVisit = "Please describe your reason for visiting.";
+  }
+  if (stepIndex === STEPS.length - 1) {
+    if (!form.agreeToPrivacyNotice) errors.agreeToPrivacyNotice = "You must acknowledge the Notice of Privacy Practices.";
+    if (!form.agreeToAssignmentOfBenefits) errors.agreeToAssignmentOfBenefits = "You must agree to the Assignment of Benefits.";
+    if (!form.agreeToFinancialResponsibility) errors.agreeToFinancialResponsibility = "You must acknowledge financial responsibility.";
+    if (!form.agreeToInsuranceWaiver) errors.agreeToInsuranceWaiver = "You must acknowledge the Insurance & Claims Notice of Responsibility.";
+    if (!form.signatureText.trim() && !form.signatureData) errors.signatureText = "Please sign by drawing or typing your full legal name.";
+  }
+  return errors;
+}
+
+/* ── CSV Export ─────────────────────────────────────────────── */
+function generateCSV(form: FormData): string {
+  const escape = (v: string) => {
+    const safeValue = /^\s*[=+\-@]/.test(v) ? `'${v}` : v;
+    return `"${safeValue.replace(/"/g, '""')}"`;
+  };
+  const pastSelected = CONDITIONS.filter(c => form[pastKey(c.key) as keyof FormData] as boolean).map(c => c.label).join(", ");
+  const famSelected = CONDITIONS.filter(c => form[famKey(c.key) as keyof FormData] as boolean).map(c => c.label).join(", ");
+  const obgynSelected = OBGYN_CONDITIONS.filter(c => form[obgynKey(c.key) as keyof FormData] as boolean).map(c => c.label).join(", ");
+  const cancerHistoryStr = (form.cancerHistory || [])
+    .map(e => `${e.relation}: ${e.cancerType} (age ${e.ageAtDiagnosis})`)
+    .join("; ");
+  const medications = formatMedicationEntries(form.currentMedications);
+
+  const rows: [string, string][] = [
+    ["Last Name", form.lastName],
+    ["First Name", form.firstName],
+    ["Preferred Name", form.preferredName],
+    ["Date of Birth", formatDate(form.dateOfBirth)],
+    ["Email", form.email],
+    ["Phone", form.phone],
+    ["Marital Status", form.maritalStatus],
+    ["Sex Assigned at Birth", form.sex],
+    ["Gender Identity", form.genderIdentity],
+    ["Pronouns", form.pronouns],
+    ["Race", form.race],
+    ["Ethnicity", form.ethnicity],
+    ["Preferred Language", form.preferredLanguage],
+    ["Address", form.address],
+    ["City", form.city],
+    ["State", form.state],
+    ["ZIP Code", form.zip],
+    ["Emergency Contact Name", form.emergencyContactName],
+    ["Emergency Contact Phone", form.emergencyContactPhone],
+    ["Emergency Contact Relationship", form.emergencyContactRelationship],
+    ["Primary Care Physician", form.primaryCarePhysician],
+    ["Primary Care Physician Phone", form.primaryCarePhysicianPhone],
+    ["Pharmacy Name", form.pharmacyName],
+    ["Pharmacy Address", form.pharmacyAddress],
+    ["Pharmacy Phone", form.pharmacyPhone],
+    ["Reason for Visit", form.reasonForVisit],
+    ["Current Medications", medications],
+    ["Drug Allergies", form.allergies],
+    ["Past Medical History (Conditions)", pastSelected],
+    ["Past Medical History (Other)", form.pastMedicalOther],
+    ["Past Surgeries", form.pastSurgeries],
+    ["Past Hospitalizations", form.pastHospitalizations],
+    ["Chronic Conditions", form.chronicConditions],
+    ["Family Medical History (Conditions)", famSelected],
+    ["Family Medical History (Other)", form.familyHistoryOther],
+    ["OB/GYN History", obgynSelected],
+    ["Last Pap Smear", formatDate(form.lastPapSmear)],
+    ["Last Mammogram", formatDate(form.lastMammogram)],
+    ["Last Colonoscopy", formatDate(form.lastColposcopy)],
+    ["Last Bone Density", formatDate(form.lastBoneDensity)],
+    ["Last Period Date", formatDate(form.lastPeriodDate)],
+    ["Period Frequency", form.periodFrequency],
+    ["Period Duration", form.periodDuration],
+    ["Heavy Periods", form.periodsHeavy],
+    ["Periods Affect Daily Activities", form.periodsAffectActivities],
+    ["Number of Pregnancies", form.numberOfPregnancies],
+    ["Number of Miscarriages", form.numberOfMiscarriages],
+    ["Number of Abortions", form.numberOfAbortions],
+    ["Delivery Type", form.deliveryType],
+    ["Sexually Active", form.sexuallyActive],
+    ["STD Screening Requested", form.stdCheck],
+    ["Domestic/Verbal Abuse in Home", form.domesticAbuse],
+    ["Caffeine Per Day", form.caffeinePerDay],
+    ["Exercise Frequency", form.exerciseFrequency],
+    ["Family/Patient Cancer History", cancerHistoryStr],
+    ["Tobacco Use", form.tobaccoUse],
+    ["Alcohol Use", form.alcoholUse],
+    ["Substance Use", form.substanceUse],
+    ["Relationship to Primary Insured", form.relationshipToInsured],
+    ["Primary Insured Name", form.primaryInsuredName],
+    ["Primary Insured DOB", formatDate(form.primaryInsuredDOB)],
+    ["Insurance Provider", form.insuranceProvider],
+    ["Policy Number", form.policyNumber],
+    ["Group Number", form.groupNumber],
+    ["Secondary Insurance", form.hasSecondaryInsurance ? "Yes" : "No"],
+    ["Secondary Insurance Provider", form.secondaryInsuranceProvider],
+    ["Secondary Policy Number", form.secondaryPolicyNumber],
+    ["Secondary Group Number", form.secondaryGroupNumber],
+    ["Privacy Notice Acknowledged", form.agreeToPrivacyNotice ? "Yes" : "No"],
+    ["Assignment of Benefits Agreed", form.agreeToAssignmentOfBenefits ? "Yes" : "No"],
+    ["Financial Responsibility Acknowledged", form.agreeToFinancialResponsibility ? "Yes" : "No"],
+    ["Insurance Waiver / Notice of Responsibility", form.agreeToInsuranceWaiver ? "Yes" : "No"],
+    ["Patient Certification", form.agreeToTerms ? "Yes" : "No"],
+    ["Electronic Signature", form.signatureText || (form.signatureData ? "[Drawn Signature — see PDF]" : "")],
+    ["Signature Date/Time", form.signatureTimestamp || form.signatureDate],
+  ];
+  return rows.map(([k, v]) => `${escape(k)},${escape(v)}`).join("\n");
+}
+
+function downloadCSV(form: FormData): void {
+  const csv = generateCSV(form);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `patient-intake-${form.lastName || "form"}-${form.firstName || ""}.csv`.replace(/\s+/g, "-").toLowerCase();
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ── Main Component ─────────────────────────────────────────── */
+
+export default function IntakeForm() {
+  const [form, setForm] = useState<FormData>(INITIAL_FORM);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [expandedStep, setExpandedStep] = useState<number>(0);
+  const [showDownload, setShowDownload] = useState(false);
+  const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const [sessionConfirmation, setSessionConfirmation] = useState<string | null>(null);
+  const [deviceConfirmation, setDeviceConfirmation] = useState<string | null>(null);
+  const [clearConfirmation, setClearConfirmation] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalChecked, setModalChecked] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  const modalFirstFocusRef = useRef<HTMLButtonElement>(null);
+  const tooltipButtonRef = useRef<HTMLButtonElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const deviceSaveButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const sessionData = loadFromStorage(sessionStorage);
+    const localData = loadFromStorage(localStorage);
+    const data = sessionData ?? localData;
+    if (data) setForm(data);
+    try {
+      const savedStep = sessionStorage.getItem(STEP_KEY) ?? localStorage.getItem(STEP_KEY);
+      if (savedStep) {
+        const stepNum = parseInt(savedStep, 10);
+        if (!isNaN(stepNum) && stepNum >= 0 && stepNum <= STEPS.length) {
+          const completed = new Set<number>();
+          for (let i = 0; i < stepNum; i++) completed.add(i);
+          setCompletedSteps(completed);
+          const isAllDone = stepNum >= STEPS.length;
+          setCurrentStep(isAllDone ? STEPS.length - 1 : stepNum);
+          setExpandedStep(isAllDone ? STEPS.length - 1 : stepNum);
+          setShowDownload(isAllDone);
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const target = e.target;
+      const name = target.name as keyof FormData;
+      const value =
+        target instanceof HTMLInputElement && target.type === "checkbox"
+          ? target.checked
+          : target.value;
+      setForm((prev) => ({ ...prev, [name]: value }));
+      setFieldErrors((prev) => {
+        if (prev[name as string]) {
+          const next = { ...prev };
+          delete next[name as string];
+          return next;
+        }
+        return prev;
+      });
+    },
+    []
+  );
+
+  const handleCancerHistoryChange = useCallback((entries: CancerEntry[]) => {
+    setForm((prev) => ({ ...prev, cancerHistory: entries }));
+  }, []);
+
+  const handleMedicationChange = useCallback((entries: MedicationEntry[]) => {
+    setForm((prev) => ({ ...prev, currentMedications: entries }));
+  }, []);
+
+  const saveStepProgress = (stepNum: number) => {
+    try {
+      const key = String(stepNum);
+      if (sessionStorage.getItem(STORAGE_KEY)) sessionStorage.setItem(STEP_KEY, key);
+      if (localStorage.getItem(STORAGE_KEY)) localStorage.setItem(STEP_KEY, key);
+    } catch { /* ignore */ }
+  };
+
+  const handleStepSave = (stepIndex: number) => {
+    const errors = validateStep(stepIndex, form);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const firstErrorId = Object.keys(errors)[0];
+      setTimeout(() => {
+        document.getElementById(firstErrorId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById(firstErrorId)?.focus();
+      }, 50);
+      return;
+    }
+    setFieldErrors({});
+
+    const updatedForm = stepIndex === STEPS.length - 1 && !form.signatureTimestamp
+      ? {
+          ...form,
+          signatureDate: new Date().toLocaleDateString(),
+          signatureTimestamp: new Date().toLocaleString("en-US", {
+            weekday: "long", year: "numeric", month: "long",
+            day: "numeric", hour: "numeric", minute: "2-digit", hour12: true,
+          }),
+        }
+      : form;
+    if (updatedForm !== form) setForm(updatedForm);
+
+    const nextCompleted = new Set(completedSteps);
+    nextCompleted.add(stepIndex);
+    setCompletedSteps(nextCompleted);
+    const isLast = stepIndex === STEPS.length - 1;
+    if (isLast) {
+      setShowDownload(true);
+      setExpandedStep(stepIndex);
+      saveStepProgress(STEPS.length);
+    } else {
+      const nextStep = stepIndex + 1;
+      setCurrentStep(nextStep);
+      setExpandedStep(nextStep);
+      saveStepProgress(nextStep);
+      setTimeout(() => {
+        document.getElementById(`step-section-${nextStep}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  };
+
+  const handleToggleStep = (stepIndex: number) => {
+    setFieldErrors({});
+    setExpandedStep((prev) => (prev === stepIndex ? -1 : stepIndex));
+  };
+
+  const progress = showDownload
+    ? 100
+    : currentStep === 0
+    ? 0
+    : Math.round((currentStep / STEPS.length) * 100);
+
+  const handleSessionSave = () => {
+    saveToStorage(sessionStorage, form);
+    setSessionConfirmation("Your progress has been saved for this session.");
+    setDeviceConfirmation(null); setClearConfirmation(null);
+    setTimeout(() => setSessionConfirmation(null), 6000);
+  };
+
+  const handleDeviceSaveRequest = () => {
+    setModalChecked(false);
+    setModalOpen(true);
+    setTimeout(() => modalFirstFocusRef.current?.focus(), 50);
+  };
+
+  const handleModalSave = () => {
+    if (!modalChecked) return;
+    saveToStorage(localStorage, form);
+    try { localStorage.setItem(STEP_KEY, String(showDownload ? STEPS.length : currentStep)); } catch { /* ignore */ }
+    setModalOpen(false);
+    setDeviceConfirmation("Your progress has been saved on this device. To protect your privacy, use this feature only on a personal device.");
+    setSessionConfirmation(null); setClearConfirmation(null);
+    setTimeout(() => setDeviceConfirmation(null), 8000);
+    deviceSaveButtonRef.current?.focus();
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    deviceSaveButtonRef.current?.focus();
+  };
+
+  const handleClear = () => {
+    clearFromStorage(sessionStorage);
+    clearFromStorage(localStorage);
+    setForm(INITIAL_FORM);
+    setCurrentStep(0);
+    setCompletedSteps(new Set());
+    setExpandedStep(0);
+    setShowDownload(false);
+    setFieldErrors({});
+    setClearConfirmation("Your saved form information has been removed from this device and browser.");
+    setSessionConfirmation(null); setDeviceConfirmation(null);
+    setTimeout(() => setClearConfirmation(null), 6000);
+  };
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    const el = modalRef.current;
+    if (!el) return;
+    const focusable = el.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { handleModalClose(); return; }
+      if (e.key === "Tab") {
+        if (!focusable.length) return;
+        if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+        else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!tooltipVisible) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tooltipButtonRef.current && !tooltipButtonRef.current.contains(e.target as Node) &&
+        tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        setTooltipVisible(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [tooltipVisible]);
+
+  const tooltipId = "device-save-tooltip";
+  const modalTitleId = "modal-title";
+  const modalDescId = "modal-desc";
+
+  return (
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+
+        {/* Demo Banner */}
+        {IS_DEMO && (
+          <div className="no-print mb-5 flex items-center gap-3 rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3" role="alert" aria-label="Demo notice">
+            <span className="shrink-0 rounded-md bg-amber-400 px-2 py-0.5 text-xs font-black uppercase tracking-widest text-amber-900">Demo</span>
+            <p className="text-sm font-medium text-amber-900 leading-snug">
+              This is a <strong>demo version</strong> for evaluation only. It is not licensed for patient use.
+              Contact <a href="mailto:hello@tymflo.com" className="underline hover:text-amber-700">hello@tymflo.com</a> to license TymFlo for your practice.
+            </p>
+          </div>
+        )}
+
+        {/* Header */}
+        <header className="mb-5 no-print text-center">
+          <h1 className="text-3xl font-bold mb-0.5 leading-tight" style={{ color: B.deepBerry }}>
+            Patient Intake Form
+          </h1>
+          <p className="font-semibold text-base" style={{ color: B.darkRose }}>{PRACTICE_NAME}</p>
+          <p className="text-slate-500 text-sm">
+            {PRACTICE_ADDRESS.street} · {PRACTICE_ADDRESS.city}, {PRACTICE_ADDRESS.state} {PRACTICE_ADDRESS.zip}
+          </p>
+          <p className="text-slate-500 text-sm">
+            Phone: {PRACTICE_ADDRESS.phone} · Fax: {PRACTICE_ADDRESS.fax}
+          </p>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {PRACTICE_PHYSICIANS.join(" · ")}
+          </p>
+          <p className="text-slate-500 text-base mt-2">Fill in each section below. Your progress is saved as you go.</p>
+        </header>
+
+        {/* Privacy Notice Banner */}
+        <div className="mb-6 flex items-start gap-3 rounded-xl px-4 py-3 no-print" role="note" aria-label="Privacy notice"
+          style={{ backgroundColor: B.blushLight, border: `1px solid ${B.blush}` }}>
+          <Lock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: B.darkRose }} aria-hidden="true" />
+          <p className="text-sm leading-relaxed" style={{ color: B.deepBerry }}>
+            <strong>Your information is not stored on this website.</strong> After completing the form, you will download or print your information and send it directly to the office.
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-6 no-print" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label={`Form progress: ${progress}%`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-600">
+              {showDownload ? "All sections complete" : `Section ${Math.min(currentStep + 1, STEPS.length)} of ${STEPS.length}`}
+            </span>
+            <span className="text-sm font-semibold" style={{ color: B.darkRose }}>{progress}%</span>
+          </div>
+          <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%`, backgroundColor: B.brandPink }} />
+          </div>
+          <div className="flex items-center mt-3 gap-1" aria-hidden="true">
+            {STEPS.map((step, i) => {
+              const done = completedSteps.has(i);
+              const isCurrent = i === currentStep && !showDownload;
+              return (
+                <div key={step.id} className="flex items-center flex-1">
+                  <div className={`step-dot ${done ? "step-dot-done" : isCurrent ? "step-dot-current" : "step-dot-upcoming"}`} title={step.title}>
+                    {done ? <CheckCircle2 className="w-4 h-4" /> : <span>{i + 1}</span>}
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div className="h-0.5 flex-1 mx-1 rounded" style={{ backgroundColor: done ? B.lightPink : "#cbd5e1" }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sections */}
+        <div className="flex flex-col gap-3 no-print" role="list" aria-label="Form sections">
+          {STEPS.map((step, stepIndex) => {
+            const isCompleted = completedSteps.has(stepIndex);
+            const isExpanded = expandedStep === stepIndex;
+            const isLocked = stepIndex > currentStep && !isCompleted;
+            const { Icon } = step;
+            const hasErrors = isExpanded && Object.keys(fieldErrors).length > 0;
+
+            return (
+              <div
+                key={step.id}
+                id={`step-section-${stepIndex}`}
+                role="listitem"
+                className="rounded-2xl border-2 transition-all duration-300 overflow-hidden"
+                style={{
+                  borderColor: isLocked
+                    ? "#e2e8f0"
+                    : isExpanded && !isCompleted
+                    ? B.brandPink
+                    : isCompleted && !isExpanded
+                    ? B.blush
+                    : isCompleted && isExpanded
+                    ? B.lightPink
+                    : "#e2e8f0",
+                  backgroundColor: isLocked
+                    ? "#f8fafc"
+                    : isCompleted && !isExpanded
+                    ? "#fdf8fa"
+                    : "#ffffff",
+                  opacity: isLocked ? 0.6 : 1,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => !isLocked && handleToggleStep(stepIndex)}
+                  disabled={isLocked}
+                  aria-expanded={isExpanded}
+                  aria-controls={`step-content-${stepIndex}`}
+                  className={`w-full flex items-center gap-4 px-6 py-5 text-left transition-colors
+                    ${isLocked ? "cursor-not-allowed" : "cursor-pointer hover:bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-inset"}
+                  `}
+                  style={{ "--tw-ring-color": B.brandPink } as React.CSSProperties}
+                >
+                  <div className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: isCompleted ? B.brandPink : isExpanded ? B.blush : "#e2e8f0",
+                      color: isCompleted ? "#ffffff" : isExpanded ? B.darkRose : "#64748b",
+                    }}>
+                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-lg font-semibold leading-tight"
+                        style={{ color: isLocked ? "#94a3b8" : isCompleted ? B.deepBerry : "#1e293b" }}>
+                        {step.title}
+                      </span>
+                      {isCompleted && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{ color: B.darkRose, backgroundColor: B.blush }}>Done</span>
+                      )}
+                    </div>
+                    {isLocked && <p className="text-sm text-slate-400 mt-0.5">Complete the previous section to unlock this one.</p>}
+                    {isCompleted && !isExpanded && <SectionSummary stepIndex={stepIndex} form={form} />}
+                  </div>
+                  {!isLocked && (
+                    <div className="shrink-0 text-slate-400" aria-hidden="true">
+                      {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </div>
+                  )}
+                </button>
+
+                {isExpanded && !isLocked && (
+                  <div id={`step-content-${stepIndex}`} className="px-6 pb-6">
+                    <div className="border-t border-slate-100 pt-5">
+                      {hasErrors && (
+                        <div className="mb-5 flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3" role="alert">
+                          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
+                          <p className="text-sm text-rose-700 font-medium">Please fill in all required fields before continuing.</p>
+                        </div>
+                      )}
+                      <StepContent
+                        stepIndex={stepIndex}
+                        form={form}
+                        onChange={handleChange}
+                        onCancerHistoryChange={handleCancerHistoryChange}
+                        onMedicationChange={handleMedicationChange}
+                        errors={fieldErrors}
+                      />
+                      <div className="mt-6 flex items-center gap-3">
+                        {isCompleted && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStep(stepIndex)}
+                            className="flex-1 py-3 px-5 rounded-xl border-2 border-slate-300 text-slate-700 text-base font-semibold hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStepSave(stepIndex)}
+                          className="flex-1 py-3 px-5 rounded-xl text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors shadow-sm"
+                          style={{ backgroundColor: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = B.deepBerry)}
+                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = B.darkRose)}
+                        >
+                          {stepIndex === STEPS.length - 1
+                            ? "Sign & Complete Form"
+                            : isCompleted
+                            ? "Save Changes & Continue"
+                            : "Save & Continue"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Download Section */}
+        {showDownload && (
+          <div className="mt-6 rounded-2xl border-2 p-7 shadow-lg no-print" role="region" aria-label="Download your completed form"
+            style={{ borderColor: B.deepBerry, backgroundColor: B.deepBerry }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "rgba(255,255,255,0.15)" }}>
+                <Download className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Your Form Is Ready</h2>
+            </div>
+            <p className="text-base mb-5 leading-relaxed" style={{ color: B.blush }}>
+              All sections are complete. Download a copy to bring with you or share with your provider.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => { window.print(); setHasDownloaded(true); setShowEmailDialog(true); }}
+                aria-label="Download completed form as PDF"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                style={{ backgroundColor: B.lightPink, color: "#ffffff", "--tw-ring-color": B.blush } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = B.brandPink)}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = B.lightPink)}
+              >
+                <Download className="w-5 h-5" aria-hidden="true" />
+                Download as PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => { downloadCSV(form); setHasDownloaded(true); setShowEmailDialog(true); }}
+                aria-label="Export form data as CSV for EHR import"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors border"
+                style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "#ffffff", borderColor: "rgba(255,255,255,0.25)", "--tw-ring-color": "rgba(255,255,255,0.5)" } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.22)")}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.12)")}
+              >
+                <FileDown className="w-5 h-5" aria-hidden="true" />
+                Export for EHR (CSV)
+              </button>
+            </div>
+            <p className="text-sm mt-3 text-center font-medium" style={{ color: B.blush }}>
+              After downloading your completed form, please email it as an attachment to{" "}
+              <a
+                href={`mailto:${PRACTICE_EMAIL}`}
+                className="underline hover:opacity-80"
+                style={{ color: "#ffffff" }}
+              >
+                {PRACTICE_EMAIL}
+              </a>.
+            </p>
+            <p className="text-xs mt-2 text-center" style={{ color: B.blush }}>
+              The CSV file can be imported into most electronic health record systems.
+            </p>
+            <p className="text-xs mt-4 pt-4 text-center" style={{ borderTop: "1px solid rgba(255,255,255,0.1)", color: "rgba(240,192,212,0.7)" }}>
+              This intake system is intended for use by patients of{" "}
+              <span className="font-medium" style={{ color: B.blush }}>{PRACTICE_NAME}</span> only.
+            </p>
+          </div>
+        )}
+
+        {/* Save Tools */}
+        <div className="mt-6 rounded-2xl p-6 no-print" role="region" aria-label="Save your progress"
+          style={{ border: `1px solid ${B.blush}`, backgroundColor: B.blushLight }}>
+          {hasDownloaded ? (
+            /* Downloaded — only show Clear Saved Data */
+            <div>
+              <h2 className="text-lg font-bold mb-1" style={{ color: B.deepBerry }}>Privacy & Data</h2>
+              <p className="text-sm mb-5" role="note" style={{ color: B.darkRose }}>
+                Your form is complete. You can remove any locally saved data from this device at any time.
+              </p>
+              <div className="flex flex-col gap-1">
+                <button type="button" onClick={handleClear} className="save-btn save-btn-clear" aria-label="Clear saved data">
+                  Clear Saved Data
+                </button>
+                <p className="helper-text">Removes any saved form information from this device and browser.</p>
+                {clearConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-rose-700 bg-rose-50">{clearConfirmation}</p>}
+              </div>
+            </div>
+          ) : (
+            /* Form in progress — show all three options */
+            <div>
+              <h2 className="text-lg font-bold mb-1" style={{ color: B.deepBerry }}>Save Your Progress</h2>
+              <p className="text-sm mb-5" role="note" style={{ color: B.darkRose }}>
+                Your form information stays in this browser unless you choose to print or download it.
+              </p>
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-5">
+                <div className="flex flex-col gap-1 flex-1">
+                  <button type="button" onClick={handleSessionSave} className="save-btn save-btn-session" aria-label="Save for this session">
+                    Save for This Session
+                  </button>
+                  <p className="helper-text">Saves your progress temporarily while this browser tab stays open.</p>
+                  {sessionConfirmation && <p role="status" aria-live="polite" className="confirmation-msg" style={{ color: B.darkRose, backgroundColor: B.blush }}>{sessionConfirmation}</p>}
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex items-center gap-2 relative">
+                    <button ref={deviceSaveButtonRef} type="button" onClick={handleDeviceSaveRequest} className="save-btn save-btn-device" aria-label="Save progress on this device" aria-describedby={tooltipId}>
+                      Save Progress on This Device
+                    </button>
+                    <div className="relative">
+                      <button ref={tooltipButtonRef} type="button" aria-label="Privacy information about saving on this device" aria-describedby={tooltipId} aria-expanded={tooltipVisible}
+                        onClick={() => setTooltipVisible((v) => !v)} onKeyDown={(e) => { if (e.key === "Escape") setTooltipVisible(false); }} className="tooltip-trigger">
+                        <Info className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                      <div ref={tooltipRef} id={tooltipId} role="tooltip" aria-hidden={!tooltipVisible} className={`tooltip-content ${tooltipVisible ? "tooltip-visible" : "tooltip-hidden"}`}>
+                        This saves your progress only on this device and browser so you can come back later. Do not use this option on a shared or public computer.
+                      </div>
+                    </div>
+                  </div>
+                  <p className="helper-text">Saves your progress only on this device and browser so you can return later.</p>
+                  {deviceConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-emerald-700 bg-emerald-50">{deviceConfirmation}</p>}
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <button type="button" onClick={handleClear} className="save-btn save-btn-clear" aria-label="Clear saved data">
+                    Clear Saved Data
+                  </button>
+                  <p className="helper-text">Removes any saved form information from this device and browser.</p>
+                  {clearConfirmation && <p role="status" aria-live="polite" className="confirmation-msg text-rose-700 bg-rose-50">{clearConfirmation}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Print View */}
+        <div className="print-only" aria-hidden="true">
+          <PrintView form={form} />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <Footer />
+
+      {/* Email Prompt Dialog */}
+      {showEmailDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print" role="dialog" aria-modal="true" aria-label="Send your intake form">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEmailDialog(false)} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: B.blush }}>
+                  <Mail className="w-5 h-5" style={{ color: B.darkRose }} aria-hidden="true" />
+                </div>
+                <h2 className="text-lg font-bold text-slate-800 leading-snug">Next Step: Send Your Form</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEmailDialog(false)}
+                aria-label="Close dialog"
+                className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 ml-2"
+                style={{ "--tw-ring-color": B.brandPink } as React.CSSProperties}
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+              Email your completed intake form to{" "}
+              <span className="font-semibold text-slate-800">{PRACTICE_NAME}</span> at:
+            </p>
+            <a
+              href={`mailto:${PRACTICE_EMAIL}?subject=Patient Intake Form — ${PRACTICE_NAME}&body=Please find my completed patient intake form attached.`}
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors mb-4"
+              style={{ backgroundColor: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = B.deepBerry)}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = B.darkRose)}
+            >
+              <Mail className="w-5 h-5" aria-hidden="true" />
+              Email to {PRACTICE_EMAIL}
+            </a>
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-1">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-amber-800 leading-relaxed">
+                <strong>Don't forget to attach your form to the email.</strong> Open your email app, attach the downloaded PDF or CSV file, then send it to {PRACTICE_EMAIL}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEmailDialog(false)}
+              className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Device Save Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print" role="dialog" aria-modal="true" aria-labelledby={modalTitleId} aria-describedby={modalDescId}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleModalClose} aria-hidden="true" />
+          <div ref={modalRef} className="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-start justify-between mb-4">
+              <h2 id={modalTitleId} className="text-lg font-bold text-slate-800 pr-4 leading-snug">Save Progress on This Device</h2>
+              <button ref={modalFirstFocusRef} type="button" onClick={handleModalClose} aria-label="Close dialog"
+                className="shrink-0 p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2"
+                style={{ "--tw-ring-color": B.brandPink } as React.CSSProperties}>
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+            <p id={modalDescId} className="text-sm text-slate-600 mb-5 leading-relaxed">
+              Your information will be saved only on this device and in this browser so you can return later and continue your form.{" "}
+              <strong>For your privacy, do not use this feature on a shared or public computer.</strong>
+            </p>
+            <div className="flex items-start gap-3 mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <input id="modal-privacy-checkbox" type="checkbox" checked={modalChecked} onChange={(e) => setModalChecked(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300" style={{ accentColor: B.brandPink }} aria-required="true" />
+              <label htmlFor="modal-privacy-checkbox" className="text-sm text-slate-700 leading-relaxed cursor-pointer">
+                I understand this saves my information only on this device and browser. Do not use this option on a shared or public computer.
+              </label>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button type="button" onClick={handleModalClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors">Cancel</button>
+              <button type="button" onClick={handleModalSave} disabled={!modalChecked} aria-disabled={!modalChecked}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+                style={{ backgroundColor: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}>
+                Save on This Device
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Condition Checklist Helper ─────────────────────────────── */
+
+function ConditionChecklist({ prefix, form, onChange }: {
+  prefix: "past" | "family";
+  form: FormData;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+      {CONDITIONS.map(({ label, key }) => {
+        const fieldName = `${prefix}${capFirst(key)}`;
+        const checked = form[fieldName as keyof FormData] as boolean;
+        return (
+          <label key={fieldName} className="flex items-center gap-2 cursor-pointer group py-0.5">
+            <input
+              id={fieldName}
+              name={fieldName}
+              type="checkbox"
+              checked={checked}
+              onChange={onChange}
+              className="h-4 w-4 shrink-0 rounded border-slate-300"
+              style={{ accentColor: B.brandPink }}
+            />
+            <span className="text-sm text-slate-700 group-hover:text-slate-900 leading-snug">{label}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+function OBGYNChecklist({ form, onChange }: {
+  form: FormData;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+      {OBGYN_CONDITIONS.map(({ label, key }) => {
+        const fieldName = obgynKey(key);
+        const checked = form[fieldName as keyof FormData] as boolean;
+        return (
+          <label key={fieldName} className="flex items-center gap-2 cursor-pointer group py-0.5">
+            <input
+              id={fieldName}
+              name={fieldName}
+              type="checkbox"
+              checked={checked}
+              onChange={onChange}
+              className="h-4 w-4 shrink-0 rounded border-slate-300"
+              style={{ accentColor: B.brandPink }}
+            />
+            <span className="text-sm text-slate-700 group-hover:text-slate-900 leading-snug">{label}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Yes/No Radio Group ─────────────────────────────────────── */
+function YesNo({ name, value, onChange, id }: {
+  name: string;
+  value: string;
+  id: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="flex gap-6" role="group" aria-labelledby={`${id}-label`}>
+      {["Yes", "No"].map(opt => (
+        <label key={opt} className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name={name}
+            value={opt}
+            checked={value === opt}
+            onChange={onChange}
+            className="h-4 w-4 border-slate-300"
+            style={{ accentColor: B.brandPink }}
+          />
+          <span className="text-sm text-slate-700">{opt}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/* ── Cancer History Table ────────────────────────────────────── */
+function CancerHistoryTable({ entries, onChange }: {
+  entries: CancerEntry[];
+  onChange: (entries: CancerEntry[]) => void;
+}) {
+  const addRow = () => {
+    onChange([...entries, { id: crypto.randomUUID(), relation: "", cancerType: "", ageAtDiagnosis: "" }]);
+  };
+  const removeRow = (id: string) => {
+    onChange(entries.filter(e => e.id !== id));
+  };
+  const updateRow = (id: string, field: keyof Omit<CancerEntry, "id">, value: string) => {
+    onChange(entries.map(e => e.id === id ? { ...e, [field]: value } : e));
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {entries.length === 0 && (
+        <p className="text-sm text-slate-400 italic">No entries yet. Click "Add Entry" to add a family or personal cancer history.</p>
+      )}
+      {entries.map((entry, idx) => (
+        <div key={entry.id} className="flex flex-col sm:flex-row gap-2 items-start rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <span className="text-xs font-semibold text-slate-400 pt-2 shrink-0 w-5">{idx + 1}.</span>
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block" htmlFor={`cancer-relation-${entry.id}`}>
+                Who (relation)
+              </label>
+              <input
+                id={`cancer-relation-${entry.id}`}
+                type="text"
+                value={entry.relation}
+                onChange={e => updateRow(entry.id, "relation", e.target.value)}
+                className="form-input"
+                placeholder="e.g. Mother, Self"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block" htmlFor={`cancer-type-${entry.id}`}>
+                Type of Cancer
+              </label>
+              <input
+                id={`cancer-type-${entry.id}`}
+                type="text"
+                value={entry.cancerType}
+                onChange={e => updateRow(entry.id, "cancerType", e.target.value)}
+                className="form-input"
+                placeholder="e.g. Breast, Colon"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block" htmlFor={`cancer-age-${entry.id}`}>
+                Age at Diagnosis
+              </label>
+              <input
+                id={`cancer-age-${entry.id}`}
+                type="text"
+                value={entry.ageAtDiagnosis}
+                onChange={e => updateRow(entry.id, "ageAtDiagnosis", e.target.value)}
+                className="form-input"
+                placeholder="e.g. 52"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => removeRow(entry.id)}
+            aria-label={`Remove entry ${idx + 1}`}
+            className="shrink-0 mt-1 p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={addRow}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 border-dashed transition-colors focus:outline-none focus:ring-2"
+        style={{ borderColor: B.lightPink, color: B.darkRose, "--tw-ring-color": B.brandPink } as React.CSSProperties}
+        onMouseEnter={e => (e.currentTarget.style.backgroundColor = B.blushLight)}
+        onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+      >
+        <Plus className="w-4 h-4" />
+        Add Entry
+      </button>
+    </div>
+  );
+}
+
+/* ── Medication Entry List ───────────────────────────────────── */
+function MedicationEntryList({ entries, onChange }: {
+  entries: MedicationEntry[];
+  onChange: (entries: MedicationEntry[]) => void;
+}) {
+  const addEntry = () => {
+    onChange([...entries, { id: crypto.randomUUID(), name: "", dosage: "" }]);
+  };
+  const removeEntry = (id: string) => {
+    const nextEntries = entries.filter(entry => entry.id !== id);
+    onChange(nextEntries.length ? nextEntries : [{ id: crypto.randomUUID(), name: "", dosage: "" }]);
+  };
+  const updateEntry = (id: string, field: "name" | "dosage", value: string) => {
+    onChange(entries.map(entry => entry.id === id ? { ...entry, [field]: value } : entry));
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-slate-500 -mt-0.5">
+        Add each medication and its dose or instructions. If you take no medications, enter “None.”
+      </p>
+      {entries.map((entry, index) => (
+        <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Medication {index + 1}</p>
+            <button
+              type="button"
+              onClick={() => removeEntry(entry.id)}
+              aria-label={`Remove medication ${index + 1}`}
+              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          <TwoCol>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-slate-700" htmlFor={`medication-name-${entry.id}`}>Medication name</label>
+              <input
+                id={`medication-name-${entry.id}`}
+                type="text"
+                value={entry.name}
+                onChange={event => updateEntry(entry.id, "name", event.target.value)}
+                className="form-input"
+                placeholder="e.g. Lisinopril"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-slate-700" htmlFor={`medication-dosage-${entry.id}`}>Dosage / instructions</label>
+              <input
+                id={`medication-dosage-${entry.id}`}
+                type="text"
+                value={entry.dosage}
+                onChange={event => updateEntry(entry.id, "dosage", event.target.value)}
+                className="form-input"
+                placeholder="e.g. 10 mg once daily"
+              />
+            </div>
+          </TwoCol>
+        </div>
+      ))}
+      <button
         type="button"
         onClick={addEntry}
         className="flex items-center gap-2 self-start px-4 py-2 rounded-xl text-sm font-semibold border-2 border-dashed transition-colors focus:outline-none focus:ring-2"
