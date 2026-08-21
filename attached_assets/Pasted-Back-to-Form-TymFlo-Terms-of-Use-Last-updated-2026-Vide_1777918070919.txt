@@ -1,0 +1,49 @@
+Back to Form
+TymFlo
+Terms of Use
+Last updated: 2026
+
+Video Walkthrough — How to Complete Your Intake Form
+
+This short video walks through all 7 sections of the form. Use the controls at the bottom to jump to any section.
+
+1. Ownership
+This patient intake system, including its design, functionality, structure, and all associated materials, is owned exclusively by TymFlo. Nothing in your use of this system transfers any ownership rights to you or to any third party.
+
+2. License
+TymFlo grants Better Women's Care a limited, non-exclusive, non-transferable license to use this intake system solely for the purpose of collecting patient intake information for that practice. This license does not convey any ownership interest in the system.
+
+This license is personal to the licensed practice and may not be transferred, sublicensed, or assigned to any other person or organization without TymFlo's prior written consent.
+
+3. Restrictions
+You may not:
+
+Copy, reproduce, or duplicate any part of this system
+Share, distribute, or make this system available to any third party
+Reuse this system for any purpose other than patient intake for the licensed practice
+Resell, sublicense, or redistribute this system in any form
+Reverse engineer, decompile, or attempt to extract the source code of this system
+Remove or alter any TymFlo branding, ownership notices, or licensing statements
+Any unauthorized use of this system is a violation of TymFlo's intellectual property rights and may result in legal action.
+
+4. Patient Use
+This intake system is intended solely for use by patients of Better Women's Care. If you are not a patient of this practice, you are not authorized to use this system and should exit immediately.
+
+5. No Data Storage by TymFlo
+TymFlo does not collect, store, transmit, or process any patient data entered into this system. All information you enter remains entirely within your web browser on your own device and is never sent to TymFlo's servers or any third-party server.
+
+If you choose to use the "Save Progress" feature, your information is stored only in your browser's local storage on your own device. TymFlo has no access to this data at any time.
+
+6. Disclaimer
+TymFlo is not responsible for how patients choose to transmit, deliver, or share their completed intake forms. Once you download or print your form, responsibility for its handling rests with you and the practice.
+
+This system is provided as a convenience tool. TymFlo makes no representations about the completeness, accuracy, or fitness for a particular medical purpose of any information collected through this system.
+
+7. Contact
+If you have questions about this intake form or your appointment, please contact Better Women's Care directly. Do not contact TymFlo with questions about your medical care or intake information.
+
+For licensing or business inquiries regarding TymFlo, you may reach us at:
+
+hello@tymflo.com
+313-217-1082
+Back to Form

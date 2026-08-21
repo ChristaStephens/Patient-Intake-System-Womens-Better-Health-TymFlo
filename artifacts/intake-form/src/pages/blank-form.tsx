@@ -23,7 +23,7 @@ const CONDITIONS = [
 const OBGYN_CONDITIONS = [
   "Abnormal Vaginal Bleeding", "Abnormal Pap Smear", "Bleeding Between Periods",
   "Breast Lump", "Breast Cancer", "Breast Surgery", "Cervical Cancer",
-  "Chlamydia", "Colonoscopy", "Chiral Surgery", "Endometriosis",
+  "Chlamydia", "Colposcopy", "Chiral Surgery", "Endometriosis",
   "Extreme Menstrual Pain", "Fibroids", "Genital Warts", "Gonorrhea",
   "Herpes", "Hot Flashes", "HPV", "Infertility", "Irregular Periods",
   "Nipple Discharge", "Ovarian Cysts", "Ovarian Cancer", "Painful Intercourse",
@@ -142,6 +142,7 @@ export default function BlankForm() {
             <BlankRow label="Email Address" />
             <BlankRow label="Phone Number" />
           </div>
+          <BlankRow label="Marital Status (Married / Single / Widowed / Divorced / Separated / Domestic Partnership / Other)" wide />
           <div className="print-two-col">
             <BlankRow label="Sex Assigned at Birth" />
             <BlankRow label="Gender Identity" />
@@ -157,29 +158,39 @@ export default function BlankForm() {
         </BlankSection>
 
         {/* Address */}
-        <BlankSection title="Address">
+        <BlankSection title="Address & Emergency Contact">
           <BlankRow label="Street Address" wide />
           <div className="print-two-col">
             <BlankRow label="City" />
             <BlankRow label="State" />
           </div>
           <BlankRow label="ZIP Code" />
+          <BlankRow label="Emergency Contact Full Name" />
+          <div className="print-two-col">
+            <BlankRow label="Emergency Contact Phone Number" />
+            <BlankRow label="Emergency Contact Relationship" />
+          </div>
         </BlankSection>
 
         {/* Provider & Visit */}
         <BlankSection title="Provider & Visit">
-          <BlankRow label="Primary Care Physician" />
+          <div className="print-two-col">
+            <BlankRow label="Primary Care Physician" />
+            <BlankRow label="Primary Care Physician Phone" />
+          </div>
           <div className="print-two-col">
             <BlankRow label="Pharmacy Name" />
             <BlankRow label="Pharmacy Phone" />
           </div>
           <BlankRow label="Pharmacy Address" />
           <BlankRow label="Reason for Visit" />
-          <BlankRow label="Current Medications (list all)" />
-          <div className="print-row" style={{ marginTop: "4pt" }}>
-            <span className="print-label">&nbsp;</span>
-            <span className="print-value">&nbsp;</span>
-          </div>
+          <p className="print-subtitle">Current Medications — list each medication with its dosage or instructions</p>
+          {[1, 2, 3].map(number => (
+            <div key={number} className="print-two-col">
+              <BlankRow label={`Medication ${number}`} />
+              <BlankRow label="Dosage / Instructions" />
+            </div>
+          ))}
           <BlankRow label="Drug Allergies" />
         </BlankSection>
 
@@ -214,6 +225,14 @@ export default function BlankForm() {
               </div>
             ))}
           </div>
+          <div className="print-two-col">
+            <BlankRow label="Last Pap Smear (MM/DD/YYYY)" />
+            <BlankRow label="Last Mammogram (MM/DD/YYYY)" />
+          </div>
+          <div className="print-two-col">
+            <BlankRow label="Last Colonoscopy (MM/DD/YYYY)" />
+            <BlankRow label="Last Bone Density (MM/DD/YYYY)" />
+          </div>
         </BlankSection>
 
         {/* Menstrual History */}
@@ -225,6 +244,10 @@ export default function BlankForm() {
           <div className="print-two-col">
             <BlankRow label="Period Duration (days)" />
             <BlankRow label="Number of Pregnancies" />
+          </div>
+          <div className="print-two-col">
+            <BlankRow label="Number of Miscarriages" />
+            <BlankRow label="Number of Abortions" />
           </div>
           <BlankRow label="Delivery Type (vaginal / C-section / other)" />
           <BlankYesNo label="Are your periods heavy?" />
@@ -284,15 +307,6 @@ export default function BlankForm() {
           <div className="print-two-col">
             <BlankRow label="Caffeine Per Day (cups / oz)" />
             <BlankRow label="Exercise Frequency" />
-          </div>
-        </BlankSection>
-
-        {/* Emergency Contact */}
-        <BlankSection title="Emergency Contact">
-          <BlankRow label="Full Name" />
-          <div className="print-two-col">
-            <BlankRow label="Phone Number" />
-            <BlankRow label="Relationship to Patient" />
           </div>
         </BlankSection>
 

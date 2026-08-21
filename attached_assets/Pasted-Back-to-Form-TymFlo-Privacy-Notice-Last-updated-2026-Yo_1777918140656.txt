@@ -1,0 +1,42 @@
+Back to Form
+TymFlo
+Privacy Notice
+Last updated: 2026
+
+Your data never leaves your device.
+
+TymFlo does not collect, store, or have access to any information you enter into this form. Everything stays entirely within your browser.
+
+No Data Collection by TymFlo
+TymFlo does not collect, receive, store, transmit, or process any patient information entered into this intake system — ever. There are no tracking pixels, analytics tools, or server-side data capture of any kind in this system.
+
+Your answers to every question on this form remain exclusively within your web browser and are never sent to any server operated by TymFlo or any third party.
+
+All Data Stays in Your Browser
+When you fill out this intake form, all data is held temporarily in your browser's memory for the current session only. When you close the browser tab, that session data is automatically cleared.
+
+This means TymFlo has no technical ability to access your information, even if we wanted to.
+
+"Save Progress" Stores Data on Your Device Only
+If you use the "Save Progress on This Device" feature, your form information is written to your browser's local storage — a private storage area on your own device. This data never leaves your device and is not accessible to TymFlo.
+
+You can remove this saved data at any time by clicking "Clear Saved Data" on the form.
+
+Do Not Use Saved Progress on Shared Devices
+Because "Save Progress" stores data on the physical device you are using, you should never use this feature on a shared, public, or employer-owned computer or phone.
+
+Only use the save feature on a personal device that only you have access to. If you have any doubt, use the session-only save option, which clears automatically when the tab closes.
+
+You Control How Your Form Is Sent
+When you have completed the form, you will download a PDF or export a CSV file to your device. TymFlo is not involved in how you choose to deliver that file to your provider.
+
+You are responsible for how you transmit your completed form. We recommend using a secure, private method such as hand-delivering a printed copy or using a secure file-sharing method recommended by your provider.
+
+Questions? Contact the Practice.
+If you have questions about your privacy, your intake form, or your appointment, please contact Better Women's Care directly.
+
+TymFlo provides the intake system technology but is not involved in the clinical relationship between you and your provider. We cannot answer questions about your care or your specific intake information.
+
+For technology or licensing inquiries: hello@tymflo.com · 313-217-1082
+
+Back to Form
